@@ -42,8 +42,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-      <div className="w-full max-w-md mx-auto px-6">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">
             Sign in to your account
@@ -59,7 +59,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 py-8 px-6 shadow-lg rounded-lg">
+        <div className="bg-white dark:bg-gray-800 py-8 px-6 shadow-lg rounded-lg mx-4">
           <Formik
             initialValues={{ email: '', password: '' }}
             validationSchema={loginSchema}
@@ -67,26 +67,31 @@ export default function LoginPage() {
           >
             {({ isSubmitting, errors, touched }) => (
               <Form className="space-y-6">
-                <div className="space-y-4">
-                  <InputField
-                    label="Email Address"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    error={errors.email}
-                    touched={touched.email}
-                  />
+                {/* Centered credentials input section */}
+                <div className="flex flex-col items-center justify-center space-y-4 max-w-sm mx-auto">
+                  <div className="w-full">
+                    <InputField
+                      label="Email Address"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      error={errors.email}
+                      touched={touched.email}
+                    />
+                  </div>
 
-                  <InputField
-                    label="Password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    error={errors.password}
-                    touched={touched.password}
-                  />
+                  <div className="w-full">
+                    <InputField
+                      label="Password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      error={errors.password}
+                      touched={touched.password}
+                    />
+                  </div>
                 </div>
 
                 <div className="text-center">
