@@ -146,22 +146,28 @@ const CourseDetails = () => {
               </h3>
               <div className="space-y-2">
                 <a
+                  href={`/courses/${id}/materials`}
+                  className="block text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  📁 Course Materials
+                </a>
+                <a
                   href={`/courses/${id}/assignments`}
                   className="block text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
-                  Assignments
+                  📝 Assignments
                 </a>
                 <a
                   href={`/courses/${id}/quizzes`}
                   className="block text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
-                  Quizzes
+                  ✍️ Quizzes
                 </a>
                 <a
                   href={`/courses/${id}/discussions`}
                   className="block text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
-                  Discussions
+                  💬 Discussions
                 </a>
               </div>
             </div>

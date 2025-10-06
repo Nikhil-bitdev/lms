@@ -9,6 +9,9 @@ const { createCourseValidation, updateCourseValidation } = require('../middlewar
 // Get all courses (public, but filters based on user role)
 router.get('/', auth, courseController.getCourses);
 
+// Get my courses (courses user is teaching or enrolled in)
+router.get('/my-courses', auth, courseController.getMyCourses);
+
 // Get single course
 router.get('/:id', auth, courseController.getCourseById);
 

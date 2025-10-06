@@ -6,20 +6,20 @@ import { useAuth } from '../../contexts/AuthContext';
 const getNavItems = (role) => {
   const items = [
     { name: 'Dashboard', path: '/dashboard', icon: '📊' },
+    { name: 'Courses', path: '/courses', icon: '📚' },
   ];
 
   if (role === 'student') {
     items.push(
-      { name: 'My Courses', path: '/courses', icon: '📚' },
       { name: 'Assignments', path: '/assignments', icon: '📝' },
       { name: 'Quizzes', path: '/quizzes', icon: '✍️' }
     );
   }
 
-  if (role === 'instructor') {
+  if (role === 'instructor' || role === 'teacher') {
     items.push(
       { name: 'My Courses', path: '/courses', icon: '📚' },
-      { name: 'Create Course', path: '/courses/create', icon: '➕' },
+      { name: 'Create Course', path: '/create-course', icon: '➕' },
       { name: 'Assignments', path: '/assignments', icon: '📝' },
       { name: 'Quizzes', path: '/quizzes', icon: '✍️' }
     );

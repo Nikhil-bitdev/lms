@@ -9,10 +9,11 @@ const CreateCourse = () => {
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
+    code: '',
     description: '',
     startDate: '',
     endDate: '',
-    capacity: '',
+    enrollmentLimit: '',
     image: null
   });
 
@@ -31,14 +32,17 @@ const CreateCourse = () => {
     setError(null);
 
     try {
-      const formDataToSend = new FormData();
-      Object.keys(formData).forEach(key => {
-        if (formData[key] !== null) {
-          formDataToSend.append(key, formData[key]);
-        }
-      });
+      // Create course data object with only the fields the backend expects
+      const courseData = {
+        title: formData.title,
+        code: formData.code,
+        description: formData.description,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        enrollmentLimit: parseInt(formData.enrollmentLimit) || null
+      };
 
-      await courseService.createCourse(formDataToSend);
+      await courseService.createCourse(courseData);
       navigate('/courses');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create course. Please try again.');
@@ -60,14 +64,36 @@ const CreateCourse = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <InputField
-          label="Course Title"
-          name="title"
-          type="text"
-          value={formData.title}
-          onChange={handleChange}
-          required
-        />
+        <div className="space-y-1">
+          <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Course Title
+          </label>
+          <input
+            type="text"
+            name="title"
+            id="title"
+            value={formData.title}
+            onChange={handleChange}
+            required
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="code" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Course Code
+          </label>
+          <input
+            type="text"
+            name="code"
+            id="code"
+            value={formData.code}
+            onChange={handleChange}
+            placeholder="e.g. CS101, MATH201"
+            required
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
+        </div>
 
         <div className="space-y-1">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -84,34 +110,52 @@ const CreateCourse = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <InputField
-            label="Start Date"
-            name="startDate"
-            type="date"
-            value={formData.startDate}
-            onChange={handleChange}
-            required
-          />
+          <div className="space-y-1">
+            <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Start Date
+            </label>
+            <input
+              type="date"
+              name="startDate"
+              id="startDate"
+              value={formData.startDate}
+              onChange={handleChange}
+              required
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+          </div>
 
-          <InputField
-            label="End Date"
-            name="endDate"
-            type="date"
-            value={formData.endDate}
-            onChange={handleChange}
-            required
-          />
+          <div className="space-y-1">
+            <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              End Date
+            </label>
+            <input
+              type="date"
+              name="endDate"
+              id="endDate"
+              value={formData.endDate}
+              onChange={handleChange}
+              required
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
+          </div>
         </div>
 
-        <InputField
-          label="Maximum Capacity"
-          name="capacity"
-          type="number"
-          min="1"
-          value={formData.capacity}
-          onChange={handleChange}
-          required
-        />
+        <div className="space-y-1">
+          <label htmlFor="enrollmentLimit" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Maximum Capacity
+          </label>
+          <input
+            type="number"
+            name="enrollmentLimit"
+            id="enrollmentLimit"
+            min="1"
+            value={formData.enrollmentLimit}
+            onChange={handleChange}
+            required
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
+        </div>
 
         <div className="space-y-1">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">

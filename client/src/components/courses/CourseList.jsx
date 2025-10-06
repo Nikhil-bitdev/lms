@@ -16,10 +16,10 @@ const CourseCard = ({ course, onEnroll, onUnenroll, isEnrolled }) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            👤 {course.instructor.name}
+            👤 {course.teacher ? `${course.teacher.firstName} ${course.teacher.lastName}` : 'Teacher'}
           </span>
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            👥 {course.enrollmentCount} students
+            👥 {course.enrollmentCount || 0} students
           </span>
         </div>
         <div className="flex items-center space-x-2">
@@ -60,14 +60,17 @@ const CourseList = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const [allCourses, myCourses] = await Promise.all([
+        const [allCoursesResponse, myCourses] = await Promise.all([
           courseService.getAllCourses(),
           courseService.getMyCourses()
         ]);
+        // Handle the response structure from backend
+        const allCourses = allCoursesResponse.courses || allCoursesResponse;
         setCourses(allCourses);
         setEnrolledCourses(myCourses);
       } catch (err) {
         setError('Failed to fetch courses. Please try again later.');
+        console.error('Fetch courses error:', err);
       } finally {
         setLoading(false);
       }
@@ -104,9 +107,9 @@ const CourseList = () => {
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
           Available Courses
         </h1>
-        {user?.role === 'instructor' && (
+        {(user?.role === 'instructor' || user?.role === 'teacher' || user?.role === 'admin') && (
           <Link
-            to="/courses/create"
+            to="/create-course"
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Create Course

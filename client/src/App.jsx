@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailsPage from './pages/CourseDetailsPage';
 import CreateCoursePage from './pages/CreateCoursePage';
+import MaterialsPage from './pages/MaterialsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
@@ -37,6 +38,7 @@ function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="courses" element={<CoursesPage />} />
           <Route path="courses/:id" element={<CourseDetailsPage />} />
+          <Route path="courses/:courseId/materials" element={<MaterialsPage />} />
           <Route path="create-course" element={<CreateCoursePage />} />
         </Route>
 

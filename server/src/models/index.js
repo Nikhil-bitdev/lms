@@ -11,6 +11,7 @@ const QuizAttempt = require('./QuizAttempt');
 const Discussion = require('./Discussion');
 const Message = require('./Message');
 const Enrollment = require('./Enrollment');
+const Material = require('./Material');
 
 // Define relationships
 User.hasMany(Course, { foreignKey: 'teacherId' });
@@ -49,6 +50,12 @@ Message.belongsTo(User, { as: 'receiver', foreignKey: 'receiverId' });
 User.belongsToMany(Course, { through: Enrollment });
 Course.belongsToMany(User, { through: Enrollment });
 
+// Material relationships
+Course.hasMany(Material, { foreignKey: 'courseId' });
+Material.belongsTo(Course, { foreignKey: 'courseId' });
+User.hasMany(Material, { foreignKey: 'uploadedBy' });
+Material.belongsTo(User, { as: 'uploader', foreignKey: 'uploadedBy' });
+
 module.exports = {
   sequelize,
   User,
@@ -60,5 +67,6 @@ module.exports = {
   QuizAttempt,
   Discussion,
   Message,
-  Enrollment
+  Enrollment,
+  Material
 };

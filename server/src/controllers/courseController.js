@@ -19,12 +19,23 @@ const createCourse = async (req, res) => {
       startDate,
       endDate,
       enrollmentLimit,
-      teacherId: req.user.id
+      teacherId: req.user.id,
+      isPublished: true // Auto-publish courses when created
+    });
+
+    // Fetch the course with teacher info for the response
+    const createdCourse = await Course.findOne({
+      where: { id: course.id },
+      include: [{
+        model: User,
+        as: 'teacher',
+        attributes: ['id', 'firstName', 'lastName', 'email']
+      }]
     });
 
     res.status(201).json({
       message: 'Course created successfully',
-      course
+      course: createdCourse
     });
   } catch (error) {
     console.error('Create course error:', error);
@@ -77,8 +88,21 @@ const getCourses = async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
+    // Add enrollment count to each course
+    const coursesWithEnrollment = await Promise.all(
+      courses.map(async (course) => {
+        const enrollmentCount = await Enrollment.count({
+          where: { courseId: course.id, status: 'active' }
+        });
+        return {
+          ...course.toJSON(),
+          enrollmentCount
+        };
+      })
+    );
+
     res.json({
-      courses,
+      courses: coursesWithEnrollment,
       totalPages: Math.ceil(count / limit),
       currentPage: parseInt(page),
       totalCourses: count
@@ -219,6 +243,60 @@ const enrollInCourse = async (req, res) => {
   }
 };
 
+// Get my courses (courses user is teaching or enrolled in)
+const getMyCourses = async (req, res) => {
+  try {
+    let courses = [];
+
+    if (req.user.role === 'teacher' || req.user.role === 'instructor' || req.user.role === 'admin') {
+      // For teachers: get courses they are teaching
+      courses = await Course.findAll({
+        where: { teacherId: req.user.id },
+        include: [
+          {
+            model: User,
+            as: 'teacher',
+            attributes: ['id', 'firstName', 'lastName', 'email']
+          }
+        ],
+        order: [['createdAt', 'DESC']]
+      });
+    } else if (req.user.role === 'student') {
+      // For students: get courses they are enrolled in
+      const enrollments = await Enrollment.findAll({
+        where: { userId: req.user.id, status: 'active' },
+        include: [{
+          model: Course,
+          include: [{
+            model: User,
+            as: 'teacher',
+            attributes: ['id', 'firstName', 'lastName', 'email']
+          }]
+        }]
+      });
+      courses = enrollments.map(enrollment => enrollment.Course);
+    }
+
+    // Add enrollment count to each course
+    const coursesWithEnrollment = await Promise.all(
+      courses.map(async (course) => {
+        const enrollmentCount = await Enrollment.count({
+          where: { courseId: course.id, status: 'active' }
+        });
+        return {
+          ...course.toJSON(),
+          enrollmentCount
+        };
+      })
+    );
+
+    res.json(coursesWithEnrollment);
+  } catch (error) {
+    console.error('Get my courses error:', error);
+    res.status(500).json({ message: 'Error retrieving my courses' });
+  }
+};
+
 // Get enrolled students
 const getEnrolledStudents = async (req, res) => {
   try {
@@ -252,6 +330,7 @@ module.exports = {
   createCourse,
   getCourses,
   getCourseById,
+  getMyCourses,
   updateCourse,
   deleteCourse,
   enrollInCourse,
