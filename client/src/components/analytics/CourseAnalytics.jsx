@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { analyticsService } from '../../services/analyticsService';
-import { LoadingSpinner } from '../LoadingSpinner';
+import LoadingSpinner from '../LoadingSpinner';
 import LineChart from '../charts/LineChart';
 import BarChart from '../charts/BarChart';
 import DoughnutChart from '../charts/DoughnutChart';

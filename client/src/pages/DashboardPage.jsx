@@ -1,5 +1,5 @@
 import { useAuth } from '../contexts/AuthContext';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const DashboardPage = () => {
   const { user } = useAuth();

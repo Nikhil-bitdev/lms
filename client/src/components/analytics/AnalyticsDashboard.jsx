@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { analyticsService } from '../../services/analyticsService';
-import { LoadingSpinner } from '../LoadingSpinner';
+import LoadingSpinner from '../LoadingSpinner';
 import LineChart from '../charts/LineChart';
 import BarChart from '../charts/BarChart';
 import DoughnutChart from '../charts/DoughnutChart';

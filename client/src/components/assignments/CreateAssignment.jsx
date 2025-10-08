@@ -5,7 +5,7 @@ import * as Yup from 'yup';
 import { toast } from 'react-hot-toast';
 import { assignmentService } from '../../services/assignmentService';
 import { courseService } from '../../services/courseService';
-import InputField from '../forms/InputField';
+import { InputField } from '../forms/InputField';
 import LoadingSpinner from '../LoadingSpinner';
 
 const CreateAssignment = () => {

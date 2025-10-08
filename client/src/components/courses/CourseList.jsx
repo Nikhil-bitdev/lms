@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { courseService } from '../../services/courseService';
-import { LoadingSpinner } from '../LoadingSpinner';
+import LoadingSpinner from '../LoadingSpinner';
 
 const CourseCard = ({ course, onEnroll, onUnenroll, isEnrolled, user }) => {
   return (

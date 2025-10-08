@@ -49,6 +49,11 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to LMS API' });
 });
 
+// Lightweight health endpoint (no DB touch)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', time: new Date().toISOString() });
+});
+
 // Socket.io connection handler
 io.on('connection', (socket) => {
   console.log('A user connected');
@@ -64,8 +69,72 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!');
 });
 
-const PORT = process.env.PORT || 5000;
+// Extra lightweight ping (separate from /api/health)
+app.get('/api/ping', (req, res) => res.type('text').send('pong'));
 
-server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+// Enhanced full health (includes DB best-effort)
+app.get('/api/health/full', async (req, res) => {
+  const start = Date.now();
+  let dbOk = true;
+  try {
+    const { sequelize } = require('./models');
+    await sequelize.query('SELECT 1');
+  } catch (e) {
+    dbOk = false;
+  }
+  res.json({
+    status: dbOk ? 'ok' : 'degraded',
+    db: dbOk ? 'reachable' : 'error',
+    uptimeSec: Math.floor(process.uptime()),
+    memoryRssMB: (process.memoryUsage().rss / 1024 / 1024).toFixed(1),
+    pid: process.pid,
+    responseTimeMs: Date.now() - start,
+    timestamp: new Date().toISOString()
+  });
+});
+
+const requestedPort = parseInt(process.env.PORT, 10) || 5000;
+const candidatePorts = [requestedPort, 5001, 5002];
+let listenAttempt = 0;
+
+const startServer = (port) => {
+  server.listen(port, '127.0.0.1', () => {
+    const addr = server.address();
+    console.log(`Server is running on http://${addr.address}:${addr.port}`);
+  });
+};
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE' && listenAttempt < candidatePorts.length - 1) {
+    console.warn(`[startup] Port ${candidatePorts[listenAttempt]} in use. Retrying on ${candidatePorts[listenAttempt + 1]}...`);
+    listenAttempt += 1;
+    setTimeout(() => startServer(candidatePorts[listenAttempt]), 300);
+  } else {
+    console.error('[startup] Failed to bind server:', err);
+    process.exit(1);
+  }
+});
+
+startServer(candidatePorts[listenAttempt]);
+
+// Heartbeat to confirm process is alive (every 30s)
+setInterval(() => {
+  process.stdout.write('[heartbeat] ' + new Date().toISOString() + '\n');
+}, 30000);
+
+// Diagnostics for unexpected exits
+process.on('exit', (code) => {
+  console.log('[process exit] code=', code);
+});
+process.on('SIGTERM', () => {
+  console.log('[signal] SIGTERM received');
+});
+process.on('SIGINT', () => {
+  console.log('[signal] SIGINT received');
+});
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
 });

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { quizService } from '../../services/quizService';
-import { LoadingSpinner } from '../LoadingSpinner';
+import LoadingSpinner from '../LoadingSpinner';
 
 const QuizCard = ({ quiz, courseId }) => {
   const startDate = new Date(quiz.startDate);
