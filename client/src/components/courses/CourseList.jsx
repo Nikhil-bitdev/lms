@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { courseService } from '../../services/courseService';
 import { LoadingSpinner } from '../LoadingSpinner';
 
-const CourseCard = ({ course, onEnroll, onUnenroll, isEnrolled }) => {
+const CourseCard = ({ course, onEnroll, onUnenroll, isEnrolled, user }) => {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
       <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
@@ -22,27 +22,61 @@ const CourseCard = ({ course, onEnroll, onUnenroll, isEnrolled }) => {
             👥 {course.enrollmentCount || 0} students
           </span>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center flex-wrap gap-2">
           <Link
             to={`/courses/${course.id}`}
-            className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            className="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
           >
             View Details
           </Link>
-          {isEnrolled ? (
-            <button
-              onClick={() => onUnenroll(course.id)}
-              className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+          
+          {/* Teacher/Instructor actions */}
+          {(user?.role === 'teacher' || user?.role === 'instructor') && course.teacherId === user?.id && (
+            <>
+              <Link
+                to={`/courses/${course.id}/assignments`}
+                className="px-3 py-1 text-sm font-medium text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
+              >
+                📝 Assignments
+              </Link>
+              <Link
+                to={`/courses/${course.id}/assignments/create`}
+                className="px-3 py-1 text-sm font-medium text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+              >
+                ➕ New Assignment
+              </Link>
+            </>
+          )}
+          
+          {/* Student actions */}
+          {isEnrolled && course.teacherId !== user?.id && (
+            <Link
+              to={`/courses/${course.id}/assignments`}
+              className="px-3 py-1 text-sm font-medium text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
             >
-              Unenroll
-            </button>
-          ) : (
-            <button
-              onClick={() => onEnroll(course.id)}
-              className="px-4 py-2 text-sm font-medium text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
-            >
-              Enroll
-            </button>
+              📝 Assignments
+            </Link>
+          )}
+          
+          {/* Enrollment actions (only for non-teachers) */}
+          {course.teacherId !== user?.id && (
+            <>
+              {isEnrolled ? (
+                <button
+                  onClick={() => onUnenroll(course.id)}
+                  className="px-3 py-1 text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                >
+                  Unenroll
+                </button>
+              ) : (
+                <button
+                  onClick={() => onEnroll(course.id)}
+                  className="px-3 py-1 text-sm font-medium text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                >
+                  Enroll
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -131,6 +165,7 @@ const CourseList = () => {
             onEnroll={handleEnroll}
             onUnenroll={handleUnenroll}
             isEnrolled={enrolledCourses.some((c) => c.id === course.id)}
+            user={user}
           />
         ))}
       </div>

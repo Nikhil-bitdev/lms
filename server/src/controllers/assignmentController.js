@@ -198,11 +198,49 @@ const getAssignmentSubmissions = async (req, res) => {
   }
 };
 
+// Get all assignments for the logged-in user
+const getUserAssignments = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    let assignments = [];
+
+    if (userRole === 'teacher' || userRole === 'instructor' || userRole === 'admin') {
+      // For teachers, get all assignments from their courses
+      assignments = await Assignment.findAll({
+        include: [{
+          model: Course,
+          where: { teacherId: userId },
+          attributes: ['id', 'title']
+        }],
+        order: [['dueDate', 'ASC']]
+      });
+    } else {
+      // For students, get assignments from courses they're enrolled in
+      // This would require an Enrollment model, for now just return all published assignments
+      assignments = await Assignment.findAll({
+        where: { isPublished: true },
+        include: [{
+          model: Course,
+          attributes: ['id', 'title']
+        }],
+        order: [['dueDate', 'ASC']]
+      });
+    }
+
+    res.json({ assignments });
+  } catch (error) {
+    console.error('Get user assignments error:', error);
+    res.status(500).json({ message: 'Error retrieving assignments' });
+  }
+};
+
 module.exports = {
   createAssignment,
   getCourseAssignments,
   getAssignment,
   submitAssignment,
   gradeSubmission,
-  getAssignmentSubmissions
+  getAssignmentSubmissions,
+  getUserAssignments
 };

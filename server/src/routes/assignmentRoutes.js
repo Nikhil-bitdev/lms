@@ -57,4 +57,11 @@ router.get(
   assignmentController.getAssignmentSubmissions
 );
 
+// Get all assignments for logged-in user
+router.get(
+  '/user/all',
+  auth,
+  assignmentController.getUserAssignments
+);
+
 module.exports = router;
