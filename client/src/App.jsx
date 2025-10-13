@@ -14,6 +14,8 @@ import AssignmentDetailsPage from './pages/AssignmentDetailsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
+import AssignmentUpload from './components/courses/AssignmentUpload';
+import AssignmentsList from './components/courses/AssignmentsList';
 
 // Simple protected route using AuthContext
 const ProtectedRoute = ({ children }) => {
@@ -61,6 +63,8 @@ function App() {
           <Route path="courses/:courseId/assignments/create" element={<CreateAssignmentPage />} />
           <Route path="assignments/:assignmentId" element={<AssignmentDetailsPage />} />
           <Route path="create-course" element={<CreateCoursePage />} />
+          <Route path="/courses/:id/assignments/upload" element={<AssignmentUpload />} />
+          <Route path="/courses/:id/assignments" element={<AssignmentsList />} />
         </Route>
 
         {/* Fallback */}

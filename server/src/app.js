@@ -93,14 +93,38 @@ app.get('/api/health/full', async (req, res) => {
   });
 });
 
+// ---- Dynamic Port Resolution ----
+// Supports either a single PORT or a PORT_RANGE like "5000-5010".
+// Falls back to default list if not provided.
 const requestedPort = parseInt(process.env.PORT, 10) || 5000;
-const candidatePorts = [requestedPort, 5001, 5002];
+function buildCandidatePorts() {
+  if (process.env.PORT_RANGE) {
+    const match = /(\d+)-(\d+)/.exec(process.env.PORT_RANGE.trim());
+    if (match) {
+      const start = parseInt(match[1], 10);
+      const end = parseInt(match[2], 10);
+      if (end >= start && end - start <= 100) { // safety cap
+        return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+      }
+    }
+  }
+  // Default: requested, + a small ascending window
+  return [requestedPort, requestedPort + 1, requestedPort + 2, requestedPort + 3, requestedPort + 4];
+}
+const candidatePorts = buildCandidatePorts();
 let listenAttempt = 0;
+let boundPort = null;
+let loggedOnce = false;
 
 const startServer = (port) => {
   server.listen(port, '127.0.0.1', () => {
     const addr = server.address();
-    console.log(`Server is running on http://${addr.address}:${addr.port}`);
+    boundPort = addr.port;
+    if (!loggedOnce) {
+      console.log(`Server is running on http://${addr.address}:${addr.port}`);
+      console.log(`[startup] Candidate ports tried: ${candidatePorts.slice(0, listenAttempt + 1).join(', ')}`);
+      loggedOnce = true;
+    }
   });
 };
 
@@ -116,6 +140,11 @@ server.on('error', (err) => {
 });
 
 startServer(candidatePorts[listenAttempt]);
+
+// Meta endpoint to expose chosen runtime port (helpful for debugging dynamic resolution)
+app.get('/api/meta/port', (req, res) => {
+  res.json({ port: boundPort, candidates: candidatePorts });
+});
 
 // Heartbeat to confirm process is alive (every 30s)
 setInterval(() => {

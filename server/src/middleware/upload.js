@@ -15,24 +15,11 @@ const storage = multer.diskStorage({
 
 // File filter
 const fileFilter = (req, file, cb) => {
-  // Allow common document and media file types
-  const allowedTypes = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'image/jpeg',
-    'image/png',
-    'video/mp4',
-    'application/zip',
-    'text/plain'
-  ];
-
-  if (allowedTypes.includes(file.mimetype)) {
+  // Only allow PDF files
+  if (file.mimetype === 'application/pdf') {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type'), false);
+    cb(new Error('Only PDF files are allowed'), false);
   }
 };
 

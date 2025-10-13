@@ -1,8 +1,11 @@
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import { useAuth } from '../../contexts/AuthContext';
 
 const DashboardLayout = () => {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="flex">

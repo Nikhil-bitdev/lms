@@ -73,19 +73,31 @@ const AssignmentDetails = () => {
 
   const handleFileInput = (e) => {
     if (e.target.files) {
-      handleFiles(e.target.files);
+          handleFiles(e.target.files);
+          // Validate file type
+          const invalidFiles = Array.from(e.target.files).filter(file => file.type !== 'application/pdf');
+          if (invalidFiles.length > 0) {
+            invalidFiles.forEach(file => {
+              toast.error(`${file.name} is not a PDF file.`);
+            });
+          }
     }
   };
 
   const handleFiles = (fileList) => {
     const newFiles = Array.from(fileList);
     const validFiles = newFiles.filter(file => {
-      // 10MB limit
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name} is too large. Maximum size is 10MB`);
-        return false;
-      }
-      return true;
+        // 10MB limit
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error(`${file.name} is too large. Maximum size is 10MB`);
+            return false;
+        }
+        // Only allow PDFs
+        if (file.type !== 'application/pdf') {
+            toast.error(`${file.name} is not a PDF file.`);
+            return false;
+        }
+        return true;
     });
 
     setFiles(prevFiles => [...prevFiles, ...validFiles]);
@@ -363,6 +375,7 @@ const AssignmentDetails = () => {
                     name="file-upload"
                     type="file"
                     multiple
+                    accept="application/pdf"
                     className="sr-only"
                     onChange={handleFileInput}
                   />

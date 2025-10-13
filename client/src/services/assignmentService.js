@@ -84,4 +84,18 @@ export const assignmentService = {
     const response = await api.get('/assignments/dashboard');
     return response.data;
   },
+
+  // Upload assignment
+  uploadAssignment: async (formData) => {
+    return api.post('/assignments', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+
+  // Get assignments by course
+  getAssignmentsByCourse: async (courseId) => {
+    return api.get(`/courses/${courseId}/assignments`);
+  }
 };
+
+export default assignmentService;

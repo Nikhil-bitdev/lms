@@ -60,6 +60,11 @@ const CourseDetails = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
   if (loading) return <LoadingSpinner />;
   if (!course) return <div>Course not found</div>;
 
@@ -122,7 +127,7 @@ const CourseDetails = () => {
             </h3>
             <div className="space-y-2">
               <p className="text-gray-600 dark:text-gray-300">
-                <span className="font-medium">Instructor:</span> {course.instructor.name}
+                <span className="font-medium">Instructor:</span> {course.instructor?.name}
               </p>
               <p className="text-gray-600 dark:text-gray-300">
                 <span className="font-medium">Start Date:</span>{' '}
