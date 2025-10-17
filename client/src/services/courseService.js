@@ -19,6 +19,12 @@ export const courseService = {
     return response.data;
   },
 
+  // Alias for getCourseById for compatibility
+  getCourse: async (id) => {
+    const response = await api.get(`/courses/${id}`);
+    return response.data;
+  },
+
   // Create new course
   createCourse: async (courseData) => {
     const response = await api.post('/courses', courseData);

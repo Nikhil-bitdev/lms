@@ -61,10 +61,9 @@ function App() {
           <Route path="assignments" element={<AllAssignmentsPage />} />
           <Route path="courses/:courseId/assignments" element={<AssignmentsPage />} />
           <Route path="courses/:courseId/assignments/create" element={<CreateAssignmentPage />} />
+          <Route path="courses/:courseId/assignments/upload" element={<AssignmentUpload />} />
           <Route path="assignments/:assignmentId" element={<AssignmentDetailsPage />} />
           <Route path="create-course" element={<CreateCoursePage />} />
-          <Route path="/courses/:id/assignments/upload" element={<AssignmentUpload />} />
-          <Route path="/courses/:id/assignments" element={<AssignmentsList />} />
         </Route>
 
         {/* Fallback */}

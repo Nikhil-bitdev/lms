@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { courseService } from '../../services/courseService';
 import LoadingSpinner from '../LoadingSpinner';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 const CourseCard = ({ course, onEnroll, onUnenroll, isEnrolled, user }) => {
   return (
@@ -89,6 +90,12 @@ const CourseList = () => {
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    courseId: null,
+    courseName: ''
+  });
   const { user } = useAuth();
 
   useEffect(() => {
@@ -118,18 +125,46 @@ const CourseList = () => {
       await courseService.enrollInCourse(courseId);
       const updatedCourses = await courseService.getMyCourses();
       setEnrolledCourses(updatedCourses);
+      
+      // Clear any existing errors
+      setError(null);
+      
+      const course = courses.find(c => c.id === courseId);
+      const courseName = course ? course.title : 'the course';
+      alert(`Successfully enrolled in "${courseName}"`);
     } catch (err) {
-      setError('Failed to enroll in the course. Please try again.');
+      console.error('Enroll error:', err);
+      setError(err.response?.data?.message || 'Failed to enroll in the course. Please try again.');
     }
   };
 
-  const handleUnenroll = async (courseId) => {
+  const handleUnenroll = (courseId) => {
+    const course = courses.find(c => c.id === courseId);
+    const courseName = course ? course.title : 'this course';
+    
+    // Open confirmation dialog
+    setConfirmDialog({
+      isOpen: true,
+      courseId,
+      courseName
+    });
+  };
+
+  const confirmUnenroll = async () => {
+    const { courseId, courseName } = confirmDialog;
+    
     try {
       await courseService.unenrollFromCourse(courseId);
       const updatedCourses = await courseService.getMyCourses();
       setEnrolledCourses(updatedCourses);
+      
+      // Show success message
+      setError(null);
+      setSuccessMessage(`Successfully unenrolled from "${courseName}"`);
+      setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
-      setError('Failed to unenroll from the course. Please try again.');
+      console.error('Unenroll error:', err);
+      setError(err.response?.data?.message || 'Failed to unenroll from the course. Please try again.');
     }
   };
 
@@ -157,6 +192,12 @@ const CourseList = () => {
         </div>
       )}
 
+      {successMessage && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+          {successMessage}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {courses.map((course) => (
           <CourseCard
@@ -169,6 +210,20 @@ const CourseList = () => {
           />
         ))}
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, courseId: null, courseName: '' })}
+        onConfirm={() => {
+          confirmUnenroll();
+          setConfirmDialog({ isOpen: false, courseId: null, courseName: '' });
+        }}
+        title="Unenroll from Course"
+        message={`Are you sure you want to unenroll from "${confirmDialog.courseName}"? You will lose access to all course materials and assignments.`}
+        confirmText="Unenroll"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 };

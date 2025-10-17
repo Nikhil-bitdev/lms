@@ -3,19 +3,24 @@ import api from './api';
 export const assignmentService = {
   // Create new assignment
   createAssignment: async (assignmentData) => {
-    const formData = new FormData();
+    // Check if assignmentData is already FormData
+    const formData = assignmentData instanceof FormData 
+      ? assignmentData 
+      : new FormData();
     
-    // Append form fields
-    formData.append('title', assignmentData.title);
-    formData.append('description', assignmentData.description);
-    formData.append('dueDate', assignmentData.dueDate);
-    formData.append('totalPoints', assignmentData.totalPoints);
-    formData.append('courseId', assignmentData.courseId);
-    
-    // Append files if any
-    if (assignmentData.files && assignmentData.files.length > 0) {
-      for (let file of assignmentData.files) {
-        formData.append('files', file);
+    // Only append fields if not already FormData
+    if (!(assignmentData instanceof FormData)) {
+      formData.append('title', assignmentData.title);
+      formData.append('description', assignmentData.description);
+      formData.append('dueDate', assignmentData.dueDate);
+      formData.append('totalPoints', assignmentData.totalPoints);
+      formData.append('courseId', assignmentData.courseId);
+      
+      // Append files if any
+      if (assignmentData.files && assignmentData.files.length > 0) {
+        for (let file of assignmentData.files) {
+          formData.append('files', file);
+        }
       }
     }
 

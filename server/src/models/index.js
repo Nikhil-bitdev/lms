@@ -1,72 +1,66 @@
 const sequelize = require('../config/database');
+const fs = require('fs');
+const path = require('path');
 
-// Import models
-const User = require('./User');
-const Course = require('./Course');
-const Assignment = require('./Assignment');
-const Submission = require('./Submission');
-const Quiz = require('./Quiz');
-const QuizQuestion = require('./QuizQuestion');
-const QuizAttempt = require('./QuizAttempt');
-const Discussion = require('./Discussion');
-const Message = require('./Message');
-const Enrollment = require('./Enrollment');
-const Material = require('./Material');
+const models = {};
+const basename = path.basename(__filename);
 
-// Define relationships
-User.hasMany(Course, { foreignKey: 'teacherId' });
-Course.belongsTo(User, { as: 'teacher', foreignKey: 'teacherId' });
+// Load all models first
+fs.readdirSync(__dirname)
+  .filter(file =>
+    file !== basename &&
+    file.endsWith('.js')
+  )
+  .forEach(file => {
+    const model = require(path.join(__dirname, file));
+    const modelName = file.replace('.js', '');
+    models[modelName] = model;
+  });
 
-Course.hasMany(Assignment, { foreignKey: 'courseId' });
-Assignment.belongsTo(Course, { foreignKey: 'courseId' });
+// Define relationships after all models are loaded
+models.User.hasMany(models.Course, { foreignKey: 'teacherId' });
+models.Course.belongsTo(models.User, { as: 'teacher', foreignKey: 'teacherId' });
 
-Course.hasMany(Quiz, { foreignKey: 'courseId' });
-Quiz.belongsTo(Course, { foreignKey: 'courseId' });
+models.Course.hasMany(models.Assignment, { foreignKey: 'courseId' });
+models.Assignment.belongsTo(models.Course, { foreignKey: 'courseId' });
 
-Quiz.hasMany(QuizQuestion, { foreignKey: 'quizId' });
-QuizQuestion.belongsTo(Quiz, { foreignKey: 'quizId' });
+models.Course.hasMany(models.Quiz, { foreignKey: 'courseId' });
+models.Quiz.belongsTo(models.Course, { foreignKey: 'courseId' });
 
-User.hasMany(Submission, { foreignKey: 'userId' });
-Submission.belongsTo(User, { foreignKey: 'userId' });
-Assignment.hasMany(Submission, { foreignKey: 'assignmentId' });
-Submission.belongsTo(Assignment, { foreignKey: 'assignmentId' });
+models.Quiz.hasMany(models.QuizQuestion, { foreignKey: 'quizId' });
+models.QuizQuestion.belongsTo(models.Quiz, { foreignKey: 'quizId' });
 
-User.hasMany(QuizAttempt, { foreignKey: 'userId' });
-QuizAttempt.belongsTo(User, { foreignKey: 'userId' });
-Quiz.hasMany(QuizAttempt, { foreignKey: 'quizId' });
-QuizAttempt.belongsTo(Quiz, { foreignKey: 'quizId' });
+models.User.hasMany(models.Submission, { foreignKey: 'userId' });
+models.Submission.belongsTo(models.User, { foreignKey: 'userId' });
+models.Assignment.hasMany(models.Submission, { foreignKey: 'assignmentId' });
+models.Submission.belongsTo(models.Assignment, { foreignKey: 'assignmentId' });
 
-Course.hasMany(Discussion, { foreignKey: 'courseId' });
-Discussion.belongsTo(Course, { foreignKey: 'courseId' });
-User.hasMany(Discussion, { foreignKey: 'userId' });
-Discussion.belongsTo(User, { foreignKey: 'userId' });
+models.User.hasMany(models.QuizAttempt, { foreignKey: 'userId' });
+models.QuizAttempt.belongsTo(models.User, { foreignKey: 'userId' });
+models.Quiz.hasMany(models.QuizAttempt, { foreignKey: 'quizId' });
+models.QuizAttempt.belongsTo(models.Quiz, { foreignKey: 'quizId' });
 
-User.hasMany(Message, { as: 'sentMessages', foreignKey: 'senderId' });
-User.hasMany(Message, { as: 'receivedMessages', foreignKey: 'receiverId' });
-Message.belongsTo(User, { as: 'sender', foreignKey: 'senderId' });
-Message.belongsTo(User, { as: 'receiver', foreignKey: 'receiverId' });
+models.Course.hasMany(models.Discussion, { foreignKey: 'courseId' });
+models.Discussion.belongsTo(models.Course, { foreignKey: 'courseId' });
+models.User.hasMany(models.Discussion, { foreignKey: 'userId' });
+models.Discussion.belongsTo(models.User, { foreignKey: 'userId' });
 
-// Enrollment (Many-to-Many relationship between User and Course)
-User.belongsToMany(Course, { through: Enrollment });
-Course.belongsToMany(User, { through: Enrollment });
+models.User.hasMany(models.Message, { as: 'sentMessages', foreignKey: 'senderId' });
+models.User.hasMany(models.Message, { as: 'receivedMessages', foreignKey: 'receiverId' });
+models.Message.belongsTo(models.User, { as: 'sender', foreignKey: 'senderId' });
+models.Message.belongsTo(models.User, { as: 'receiver', foreignKey: 'receiverId' });
 
-// Material relationships
-Course.hasMany(Material, { foreignKey: 'courseId' });
-Material.belongsTo(Course, { foreignKey: 'courseId' });
-User.hasMany(Material, { foreignKey: 'uploadedBy' });
-Material.belongsTo(User, { as: 'uploader', foreignKey: 'uploadedBy' });
+models.User.hasMany(models.Enrollment, { foreignKey: 'userId' });
+models.Enrollment.belongsTo(models.User, { foreignKey: 'userId' });
+models.Course.hasMany(models.Enrollment, { foreignKey: 'courseId' });
+models.Enrollment.belongsTo(models.Course, { foreignKey: 'courseId' });
+
+models.Course.hasMany(models.Material, { foreignKey: 'courseId' });
+models.Material.belongsTo(models.Course, { foreignKey: 'courseId' });
+models.User.hasMany(models.Material, { foreignKey: 'uploadedBy' });
+models.Material.belongsTo(models.User, { as: 'uploader', foreignKey: 'uploadedBy' });
 
 module.exports = {
   sequelize,
-  User,
-  Course,
-  Assignment,
-  Submission,
-  Quiz,
-  QuizQuestion,
-  QuizAttempt,
-  Discussion,
-  Message,
-  Enrollment,
-  Material
+  ...models
 };

@@ -39,6 +39,10 @@ const Course = sequelize.define('Course', {
   enrollmentLimit: {
     type: DataTypes.INTEGER,
     allowNull: true
+  },
+  teacherId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   }
 });
 

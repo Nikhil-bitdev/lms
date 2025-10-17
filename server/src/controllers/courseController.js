@@ -297,6 +297,37 @@ const getMyCourses = async (req, res) => {
   }
 };
 
+// Unenroll from course
+const unenrollFromCourse = async (req, res) => {
+  try {
+    const course = await Course.findByPk(req.params.id);
+
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Find existing enrollment
+    const enrollment = await Enrollment.findOne({
+      where: {
+        userId: req.user.id,
+        courseId: course.id
+      }
+    });
+
+    if (!enrollment) {
+      return res.status(400).json({ message: 'Not enrolled in this course' });
+    }
+
+    // Delete the enrollment
+    await enrollment.destroy();
+
+    res.json({ message: 'Successfully unenrolled from course' });
+  } catch (error) {
+    console.error('Course unenrollment error:', error);
+    res.status(500).json({ message: 'Error unenrolling from course' });
+  }
+};
+
 // Get enrolled students
 const getEnrolledStudents = async (req, res) => {
   try {
@@ -334,5 +365,6 @@ module.exports = {
   updateCourse,
   deleteCourse,
   enrollInCourse,
+  unenrollFromCourse,
   getEnrolledStudents
 };

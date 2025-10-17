@@ -51,6 +51,14 @@ router.post(
   courseController.enrollInCourse
 );
 
+// Unenroll from course (students only)
+router.post(
+  '/:id/unenroll',
+  auth,
+  authorize('student'),
+  courseController.unenrollFromCourse
+);
+
 // Get enrolled students (course teacher and admins only)
 router.get(
   '/:id/students',

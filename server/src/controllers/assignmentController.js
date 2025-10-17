@@ -211,21 +211,45 @@ const getUserAssignments = async (req, res) => {
         include: [{
           model: Course,
           where: { teacherId: userId },
-          attributes: ['id', 'title']
+          attributes: ['id', 'title', 'code']
         }],
         order: [['dueDate', 'ASC']]
       });
     } else {
       // For students, get assignments from courses they're enrolled in
-      // This would require an Enrollment model, for now just return all published assignments
-      assignments = await Assignment.findAll({
-        where: { isPublished: true },
-        include: [{
-          model: Course,
-          attributes: ['id', 'title']
-        }],
-        order: [['dueDate', 'ASC']]
+      const { Enrollment } = require('../models');
+      
+      // Get enrolled courses
+      const enrollments = await Enrollment.findAll({
+        where: { userId, status: 'active' },
+        attributes: ['courseId']
       });
+      
+      const enrolledCourseIds = enrollments.map(e => e.courseId);
+      
+      if (enrolledCourseIds.length > 0) {
+        // Get assignments from enrolled courses
+        assignments = await Assignment.findAll({
+          where: { courseId: enrolledCourseIds },
+          include: [{
+            model: Course,
+            attributes: ['id', 'title', 'code']
+          }, {
+            model: Submission,
+            where: { userId },
+            required: false,
+            attributes: ['id', 'submittedAt', 'grade']
+          }],
+          order: [['dueDate', 'ASC']]
+        });
+        
+        // Add isSubmitted flag for easier frontend handling
+        assignments = assignments.map(assignment => {
+          const assignmentJSON = assignment.toJSON();
+          assignmentJSON.isSubmitted = assignmentJSON.Submissions && assignmentJSON.Submissions.length > 0;
+          return assignmentJSON;
+        });
+      }
     }
 
     res.json({ assignments });

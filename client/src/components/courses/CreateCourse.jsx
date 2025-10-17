@@ -21,6 +21,10 @@ const CreateCourse = () => {
     const { name, value, files } = e.target;
     if (name === 'image') {
       setFormData(prev => ({ ...prev, image: files[0] }));
+    } else if (name === 'code') {
+      // Convert course code to uppercase and remove invalid characters
+      const sanitized = value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+      setFormData(prev => ({ ...prev, [name]: sanitized }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -45,7 +49,15 @@ const CreateCourse = () => {
       await courseService.createCourse(courseData);
       navigate('/courses');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create course. Please try again.');
+      console.error('Course creation error:', err.response?.data);
+      
+      // Handle validation errors
+      if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+        const errorMessages = err.response.data.errors.map(e => e.msg).join(', ');
+        setError(errorMessages);
+      } else {
+        setError(err.response?.data?.message || 'Failed to create course. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -91,8 +103,13 @@ const CreateCourse = () => {
             onChange={handleChange}
             placeholder="e.g. CS101, MATH201"
             required
+            pattern="[A-Z0-9-]{3,20}"
+            title="Course code must be 3-20 characters, uppercase letters, numbers, and hyphens only"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           />
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Use uppercase letters, numbers, and hyphens only (e.g., CS-101)
+          </p>
         </div>
 
         <div className="space-y-1">
