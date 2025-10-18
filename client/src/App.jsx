@@ -13,6 +13,8 @@ import CreateAssignmentPage from './pages/CreateAssignmentPage';
 import AssignmentDetailsPage from './pages/AssignmentDetailsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import TeacherRegisterPage from './pages/TeacherRegisterPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import AssignmentUpload from './components/courses/AssignmentUpload';
 import AssignmentsList from './components/courses/AssignmentsList';
@@ -43,6 +45,7 @@ function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/register/teacher/:token" element={<TeacherRegisterPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
         <Route
@@ -55,6 +58,7 @@ function App() {
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="admin" element={<AdminDashboardPage />} />
           <Route path="courses" element={<CoursesPage />} />
           <Route path="courses/:id" element={<CourseDetailsPage />} />
           <Route path="courses/:courseId/materials" element={<MaterialsPage />} />

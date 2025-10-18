@@ -27,6 +27,7 @@ const getNavItems = (role) => {
 
   if (role === 'admin') {
     items.push(
+      { name: 'Admin Panel', path: '/admin', icon: '⚙️' },
       { name: 'Users', path: '/users', icon: '👥' },
       { name: 'All Courses', path: '/courses', icon: '📚' },
       { name: 'Analytics', path: '/analytics', icon: '📈' }

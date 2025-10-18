@@ -60,6 +60,9 @@ models.Material.belongsTo(models.Course, { foreignKey: 'courseId' });
 models.User.hasMany(models.Material, { foreignKey: 'uploadedBy' });
 models.Material.belongsTo(models.User, { as: 'uploader', foreignKey: 'uploadedBy' });
 
+models.User.hasMany(models.TeacherInvitation, { foreignKey: 'invitedBy' });
+models.TeacherInvitation.belongsTo(models.User, { as: 'admin', foreignKey: 'invitedBy' });
+
 module.exports = {
   sequelize,
   ...models

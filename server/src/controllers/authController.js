@@ -13,19 +13,26 @@ const register = async (req, res) => {
   try {
     const { firstName, lastName, email, password, role } = req.body;
 
+    // Prevent users from self-registering as teacher or admin
+    if (role && (role === 'teacher' || role === 'admin')) {
+      return res.status(403).json({ 
+        message: 'Cannot self-register as teacher or admin. Please contact an administrator for teacher access.' 
+      });
+    }
+
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
-    // Create new user
+    // Create new user with student role only
     const user = await User.create({
       firstName,
       lastName,
       email,
       password, // Password will be hashed by model hook
-      role: role || 'student' // Default role is student
+      role: 'student' // Force student role for public registration
     });
 
     // Generate token
