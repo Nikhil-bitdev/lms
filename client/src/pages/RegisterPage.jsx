@@ -27,9 +27,6 @@ const registerSchema = Yup.object().shape({
   confirmPassword: Yup.string()
     .oneOf([Yup.ref('password'), null], 'Passwords must match')
     .required('Confirm password is required'),
-  role: Yup.string()
-    .oneOf(['student', 'teacher'], 'Invalid role')
-    .required('Role is required'),
 });
 
 export default function RegisterPage() {
@@ -38,8 +35,13 @@ export default function RegisterPage() {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      console.log('Registration attempt with:', values);
-      await register(values);
+      // Always set role to 'student' - teachers must be invited by admin
+      const registrationData = {
+        ...values,
+        role: 'student'
+      };
+      console.log('Registration attempt with:', registrationData);
+      await register(registrationData);
       console.log('Registration successful');
       toast.success('Registration successful!');
       navigate('/dashboard');
@@ -77,7 +79,6 @@ export default function RegisterPage() {
               email: '',
               password: '',
               confirmPassword: '',
-              role: 'student',
             }}
             validationSchema={registerSchema}
             onSubmit={handleSubmit}
@@ -133,20 +134,7 @@ export default function RegisterPage() {
                     touched={touched.confirmPassword}
                   />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
-                    <Field
-                      as="select"
-                      name="role"
-                      className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-200"
-                    >
-                      <option value="student">Student</option>
-                      <option value="teacher">Teacher</option>
-                    </Field>
-                    {errors.role && touched.role && (
-                      <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.role}</p>
-                    )}
-                  </div>
+                  {/* Role is hidden - always student. Teachers must be invited by admin */}
                 </div>
 
                 <div>

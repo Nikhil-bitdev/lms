@@ -16,13 +16,24 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: [
+      process.env.CLIENT_URL || "http://localhost:3000",
+      "http://192.168.1.13:5173",
+      "http://localhost:5173"
+    ],
     methods: ["GET", "POST"]
   }
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    process.env.CLIENT_URL || "http://localhost:3000",
+    "http://192.168.1.13:5173",
+    "http://localhost:5173"
+  ],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -119,7 +130,7 @@ let boundPort = null;
 let loggedOnce = false;
 
 const startServer = (port) => {
-  server.listen(port, '127.0.0.1', () => {
+  server.listen(port, '0.0.0.0', () => {  // Changed to 0.0.0.0 to allow external access
     const addr = server.address();
     boundPort = addr.port;
     if (!loggedOnce) {

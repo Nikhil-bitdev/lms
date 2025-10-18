@@ -19,7 +19,8 @@ const TeacherRegisterPage = () => {
 
   const fetchInvitation = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/auth/register/teacher/${token}`);
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const response = await axios.get(`${apiUrl}/auth/register/teacher/${token}`);
       setInvitation(response.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid or expired invitation');
@@ -43,7 +44,8 @@ const TeacherRegisterPage = () => {
     }
 
     try {
-      await axios.post(`http://localhost:5000/api/auth/register/teacher/${token}`, { password });
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      await axios.post(`${apiUrl}/auth/register/teacher/${token}`, { password });
       setSuccess(true);
       setTimeout(() => {
         navigate('/login');
