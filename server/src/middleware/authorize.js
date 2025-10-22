@@ -4,9 +4,12 @@ const authorize = (...roles) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    if (!roles.includes(req.user.role)) {
+    // Flatten roles in case an array is passed
+    const allowedRoles = roles.flat();
+
+    if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({ 
-        message: 'You do not have permission to perform this action' 
+        message: 'You do not have permission to perform this action'
       });
     }
 

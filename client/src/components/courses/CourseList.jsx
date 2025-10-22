@@ -4,86 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { courseService } from '../../services/courseService';
 import LoadingSpinner from '../LoadingSpinner';
 import ConfirmDialog from '../common/ConfirmDialog';
-
-const CourseCard = ({ course, onEnroll, onUnenroll, isEnrolled, user }) => {
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-      <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
-        {course.title}
-      </h3>
-      <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-2">
-        {course.description}
-      </p>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            👤 {course.teacher ? `${course.teacher.firstName} ${course.teacher.lastName}` : 'Teacher'}
-          </span>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            👥 {course.enrollmentCount || 0} students
-          </span>
-        </div>
-        <div className="flex items-center flex-wrap gap-2">
-          <Link
-            to={`/courses/${course.id}`}
-            className="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-          >
-            View Details
-          </Link>
-          
-          {/* Teacher/Instructor actions */}
-          {(user?.role === 'teacher' || user?.role === 'instructor') && course.teacherId === user?.id && (
-            <>
-              <Link
-                to={`/courses/${course.id}/assignments`}
-                className="px-3 py-1 text-sm font-medium text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
-              >
-                📝 Assignments
-              </Link>
-              <Link
-                to={`/courses/${course.id}/assignments/create`}
-                className="px-3 py-1 text-sm font-medium text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
-              >
-                ➕ New Assignment
-              </Link>
-            </>
-          )}
-          
-          {/* Student actions */}
-          {isEnrolled && course.teacherId !== user?.id && (
-            <Link
-              to={`/courses/${course.id}/assignments`}
-              className="px-3 py-1 text-sm font-medium text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
-            >
-              📝 Assignments
-            </Link>
-          )}
-          
-          {/* Enrollment actions (only for non-teachers) */}
-          {course.teacherId !== user?.id && (
-            <>
-              {isEnrolled ? (
-                <button
-                  onClick={() => onUnenroll(course.id)}
-                  className="px-3 py-1 text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                >
-                  Unenroll
-                </button>
-              ) : (
-                <button
-                  onClick={() => onEnroll(course.id)}
-                  className="px-3 py-1 text-sm font-medium text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
-                >
-                  Enroll
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
+import CourseCard from './CourseCard';
 
 const CourseList = () => {
   const [courses, setCourses] = useState([]);
@@ -101,14 +22,30 @@ const CourseList = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const [allCoursesResponse, myCourses] = await Promise.all([
-          courseService.getAllCourses(),
-          courseService.getMyCourses()
-        ]);
-        // Handle the response structure from backend
-        const allCourses = allCoursesResponse.courses || allCoursesResponse;
-        setCourses(allCourses);
-        setEnrolledCourses(myCourses);
+        if (user?.role === 'teacher') {
+          // Teachers: only assigned courses
+          const myCourses = await courseService.getMyCourses();
+          setCourses(myCourses);
+          setEnrolledCourses([]);
+        } else if (user?.role === 'student') {
+          // Students: all available courses (so they can browse and enroll)
+          const [allCoursesResponse, myCourses] = await Promise.all([
+            courseService.getAllCourses(),
+            courseService.getMyCourses()
+          ]);
+          const allCourses = allCoursesResponse.courses || allCoursesResponse;
+          setCourses(allCourses);
+          setEnrolledCourses(myCourses);
+        } else if (user?.role === 'admin') {
+          // Admin: all courses
+          const allCoursesResponse = await courseService.getAllCourses();
+          const allCourses = allCoursesResponse.courses || allCoursesResponse;
+          setCourses(allCourses);
+          setEnrolledCourses([]);
+        } else {
+          setCourses([]);
+          setEnrolledCourses([]);
+        }
       } catch (err) {
         setError('Failed to fetch courses. Please try again later.');
         console.error('Fetch courses error:', err);
@@ -116,9 +53,8 @@ const CourseList = () => {
         setLoading(false);
       }
     };
-
     fetchCourses();
-  }, []);
+  }, [user]);
 
   const handleEnroll = async (courseId) => {
     try {
@@ -171,59 +107,104 @@ const CourseList = () => {
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-          Available Courses
-        </h1>
-        {(user?.role === 'instructor' || user?.role === 'teacher' || user?.role === 'admin') && (
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            {user?.role === 'teacher' ? 'My Courses' : user?.role === 'admin' ? 'All Courses' : 'Browse Courses'}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            {user?.role === 'teacher' 
+              ? 'Courses assigned to you by administration' 
+              : user?.role === 'admin'
+              ? 'Manage all courses in the system'
+              : 'Discover and enroll in available courses'}
+          </p>
+        </div>
+        {user?.role === 'admin' && (
           <Link
-            to="/create-course"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            to="/admin"
+            className="px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2"
           >
-            Create Course
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Admin Panel
           </Link>
         )}
       </div>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-lg shadow-md animate-fade-in">
+          <div className="flex items-center">
+            <svg className="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {error}
+          </div>
         </div>
       )}
 
       {successMessage && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-          {successMessage}
+        <div className="bg-green-100 border-l-4 border-green-500 text-green-700 px-6 py-4 rounded-lg shadow-md animate-fade-in">
+          <div className="flex items-center">
+            <svg className="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {successMessage}
+          </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {courses.map((course) => (
-          <CourseCard
-            key={course.id}
-            course={course}
-            onEnroll={handleEnroll}
-            onUnenroll={handleUnenroll}
-            isEnrolled={enrolledCourses.some((c) => c.id === course.id)}
-            user={user}
-          />
-        ))}
-      </div>
+      {courses.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="bg-white dark:bg-gray-800 rounded-full p-8 mb-6 shadow-lg">
+            <svg className="h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-2">No courses found</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-center max-w-md">
+            {user?.role === 'teacher' 
+              ? 'You have no courses assigned yet. Contact your administrator to get courses assigned to you.'
+              : user?.role === 'admin'
+              ? 'No courses have been created yet. Create your first course from the Admin Panel.'
+              : 'No courses are currently available for enrollment. Check back soon!'}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {courses.map((course) => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                onEnroll={handleEnroll}
+                onUnenroll={handleUnenroll}
+                isEnrolled={enrolledCourses.some((c) => c.id === course.id)}
+                user={user}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog({ isOpen: false, courseId: null, courseName: '' })}
-        onConfirm={() => {
-          confirmUnenroll();
-          setConfirmDialog({ isOpen: false, courseId: null, courseName: '' });
-        }}
-        title="Unenroll from Course"
-        message={`Are you sure you want to unenroll from "${confirmDialog.courseName}"? You will lose access to all course materials and assignments.`}
-        confirmText="Unenroll"
-        cancelText="Cancel"
-        type="danger"
-      />
+      {confirmDialog.isOpen && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          onClose={() => setConfirmDialog({ isOpen: false, courseId: null, courseName: '' })}
+          onConfirm={() => {
+            confirmUnenroll();
+            setConfirmDialog({ isOpen: false, courseId: null, courseName: '' });
+          }}
+          title="Unenroll from Course"
+          message={`Are you sure you want to unenroll from "${confirmDialog.courseName}"? You will lose access to all course materials and assignments.`}
+          confirmText="Unenroll"
+          cancelText="Cancel"
+          type="danger"
+        />
+      )}
     </div>
   );
 };

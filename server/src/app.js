@@ -18,8 +18,11 @@ const io = socketIo(server, {
   cors: {
     origin: [
       process.env.CLIENT_URL || "http://localhost:3000",
+      "http://192.168.1.3:5173",
+      "http://192.168.1.3:5174",
       "http://192.168.1.13:5173",
-      "http://localhost:5173"
+      "http://localhost:5173",
+      "http://localhost:5174"
     ],
     methods: ["GET", "POST"]
   }
@@ -29,8 +32,11 @@ const io = socketIo(server, {
 app.use(cors({
   origin: [
     process.env.CLIENT_URL || "http://localhost:3000",
+    "http://192.168.1.3:5173",
+    "http://192.168.1.3:5174",
     "http://192.168.1.13:5173",
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "http://localhost:5174"
   ],
   credentials: true
 }));
@@ -158,11 +164,6 @@ startServer(candidatePorts[listenAttempt]);
 app.get('/api/meta/port', (req, res) => {
   res.json({ port: boundPort, candidates: candidatePorts });
 });
-
-// Heartbeat to confirm process is alive (every 30s)
-setInterval(() => {
-  process.stdout.write('[heartbeat] ' + new Date().toISOString() + '\n');
-}, 30000);
 
 // Diagnostics for unexpected exits
 process.on('exit', (code) => {

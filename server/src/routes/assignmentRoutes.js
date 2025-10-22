@@ -18,6 +18,20 @@ router.post(
   assignmentController.createAssignment
 );
 
+// Get all assignments for logged-in user (must be before /:id)
+router.get(
+  '/user/all',
+  auth,
+  assignmentController.getUserAssignments
+);
+
+// Download assignment attachment (must be before /:id)
+router.get(
+  '/download/:filename',
+  auth,
+  assignmentController.downloadAttachment
+);
+
 // Get all assignments for a course
 router.get(
   '/course/:courseId',
@@ -25,11 +39,12 @@ router.get(
   assignmentController.getCourseAssignments
 );
 
-// Get single assignment
+// Get all submissions for an assignment (teachers and admins only)
 router.get(
-  '/:id',
+  '/:assignmentId/submissions',
   auth,
-  assignmentController.getAssignment
+  authorize('teacher', 'admin'),
+  assignmentController.getAssignmentSubmissions
 );
 
 // Submit assignment (students only)
@@ -49,19 +64,19 @@ router.post(
   assignmentController.gradeSubmission
 );
 
-// Get all submissions for an assignment (teachers and admins only)
-router.get(
-  '/:assignmentId/submissions',
+// Delete assignment (admin and teacher only) - must be before GET /:id
+router.delete(
+  '/:id',
   auth,
-  authorize('teacher', 'admin'),
-  assignmentController.getAssignmentSubmissions
+  authorize('admin', 'teacher'),
+  assignmentController.deleteAssignment
 );
 
-// Get all assignments for logged-in user
+// Get single assignment (should be last among /:id routes)
 router.get(
-  '/user/all',
+  '/:id',
   auth,
-  assignmentController.getUserAssignments
+  assignmentController.getAssignment
 );
 
 module.exports = router;

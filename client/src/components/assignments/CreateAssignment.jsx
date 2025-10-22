@@ -37,9 +37,7 @@ const CreateAssignment = () => {
       .required('Assignment title is required')
       .min(3, 'Title must be at least 3 characters')
       .max(100, 'Title must be less than 100 characters'),
-    description: Yup.string()
-      .required('Assignment description is required')
-      .min(10, 'Description must be at least 10 characters'),
+    description: Yup.string(),
     dueDate: Yup.date()
       .required('Due date is required')
       .min(new Date(), 'Due date must be in the future'),
@@ -181,13 +179,13 @@ const CreateAssignment = () => {
               {/* Assignment Description */}
               <div className="space-y-1">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Assignment Description *
+                  Assignment Description
                 </label>
                 <InputField
                   name="description"
                   as="textarea"
                   rows="4"
-                  placeholder="Provide detailed instructions for the assignment..."
+                  placeholder="Provide detailed instructions for the assignment (optional)..."
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
               </div>

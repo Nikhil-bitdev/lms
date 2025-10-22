@@ -17,17 +17,25 @@ export default function MaterialsPage() {
   }, [courseId]);
 
   const fetchCourse = async () => {
+    console.log('[MaterialsPage] Fetching course, courseId:', courseId);
     try {
       const courseData = await courseService.getCourseById(courseId);
+      console.log('[MaterialsPage] Course loaded:', courseData);
       setCourse(courseData);
     } catch (error) {
-      console.error('Error fetching course:', error);
+      console.error('[MaterialsPage] Error fetching course:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const isTeacherOrAdmin = user && (user.id === course?.teacherId || user.role === 'admin' || user.role === 'teacher');
+  // Check if user can upload materials:
+  // - Admins can upload to any course
+  // - Teachers can only upload to courses they teach
+  const canUploadMaterials = user && (
+    user.role === 'admin' || 
+    (user.role === 'teacher' && user.id === course?.teacherId)
+  );
 
   if (loading) {
     return (
@@ -50,7 +58,7 @@ export default function MaterialsPage() {
           </p>
         </div>
         
-        {isTeacherOrAdmin && (
+        {canUploadMaterials && (
           <button
             onClick={() => setShowUpload(true)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
@@ -64,7 +72,7 @@ export default function MaterialsPage() {
       </div>
 
       {/* Instructions for students */}
-      {!isTeacherOrAdmin && (
+      {!canUploadMaterials && (
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
           <div className="flex items-start gap-3">
             <svg className="w-5 h-5 text-blue-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -84,7 +92,7 @@ export default function MaterialsPage() {
       )}
 
       {/* Instructions for teachers */}
-      {isTeacherOrAdmin && (
+      {canUploadMaterials && (
         <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
           <div className="flex items-start gap-3">
             <svg className="w-5 h-5 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +118,7 @@ export default function MaterialsPage() {
       />
 
       {/* Upload Modal */}
-      {showUpload && (
+      {showUpload && course && (
         <MaterialUpload
           courseId={courseId}
           onUploadSuccess={() => {
@@ -119,6 +127,18 @@ export default function MaterialsPage() {
           }}
           onClose={() => setShowUpload(false)}
         />
+      )}
+
+      {/* Show loading if trying to upload without course data */}
+      {showUpload && !course && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
+              <p className="text-gray-600 dark:text-gray-400">Loading course information...</p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

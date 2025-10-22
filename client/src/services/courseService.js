@@ -53,5 +53,11 @@ export const courseService = {
   unenrollFromCourse: async (courseId) => {
     const response = await api.post(`/courses/${courseId}/unenroll`);
     return response.data;
+  },
+
+  // Get enrolled students for a course (teachers and admins only)
+  getEnrolledStudents: async (courseId) => {
+    const response = await api.get(`/courses/${courseId}/students`);
+    return response.data;
   }
 };

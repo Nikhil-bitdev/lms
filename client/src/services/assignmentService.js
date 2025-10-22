@@ -100,6 +100,12 @@ export const assignmentService = {
   // Get assignments by course
   getAssignmentsByCourse: async (courseId) => {
     return api.get(`/courses/${courseId}/assignments`);
+  },
+
+  // Delete assignment (admin/teacher only)
+  deleteAssignment: async (assignmentId) => {
+    const response = await api.delete(`/assignments/${assignmentId}`);
+    return response.data;
   }
 };
 

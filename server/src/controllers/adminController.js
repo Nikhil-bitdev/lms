@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { User, TeacherInvitation } = require('../models');
+const { User, TeacherInvitation, Course } = require('../models');
 const { Op } = require('sequelize');
 const { sendTeacherInvitation } = require('../services/emailService');
 
@@ -246,6 +246,107 @@ const getInvitationByToken = async (req, res) => {
   }
 };
 
+// Create course and assign to teacher (admin only)
+const createCourse = async (req, res) => {
+  try {
+    const { title, description, code, startDate, endDate, enrollmentLimit, teacherId } = req.body;
+    
+    // Validate that teacherId is provided
+    if (!teacherId) {
+      return res.status(400).json({ message: 'Teacher ID is required' });
+    }
+
+    // Verify teacher exists and is active
+    const teacher = await User.findOne({ 
+      where: { 
+        id: teacherId,
+        role: 'teacher',
+        isActive: true
+      } 
+    });
+
+    if (!teacher) {
+      return res.status(404).json({ message: 'Active teacher not found' });
+    }
+
+    // Check if course code already exists
+    const existingCourse = await Course.findOne({ where: { code } });
+    if (existingCourse) {
+      return res.status(400).json({ message: 'Course code already exists' });
+    }
+
+    // Create course
+    const course = await Course.create({
+      title,
+      description,
+      code,
+      startDate,
+      endDate,
+      enrollmentLimit,
+      teacherId,
+      isPublished: true // Auto-publish courses when created by admin
+    });
+
+    // Fetch the course with teacher info for the response
+    const createdCourse = await Course.findOne({
+      where: { id: course.id },
+      include: [{
+        model: User,
+        as: 'teacher',
+        attributes: ['id', 'firstName', 'lastName', 'email']
+      }]
+    });
+
+    res.status(201).json({
+      message: 'Course created and assigned successfully',
+      course: createdCourse
+    });
+  } catch (error) {
+    console.error('Admin create course error:', error);
+    res.status(500).json({ message: 'Error creating course' });
+  }
+};
+
+// Delete a teacher
+const deleteTeacher = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const teacher = await User.findOne({ 
+      where: { 
+        id,
+        role: 'teacher'
+      } 
+    });
+
+    if (!teacher) {
+      return res.status(404).json({ message: 'Teacher not found' });
+    }
+
+    // Check if teacher has any courses
+    const { Course } = require('../models');
+    const courses = await Course.findAll({ where: { teacherId: id } });
+    
+    if (courses.length > 0) {
+      return res.status(400).json({ 
+        message: `Cannot delete teacher. They have ${courses.length} course(s) assigned. Please reassign or delete the courses first.`,
+        coursesCount: courses.length
+      });
+    }
+
+    // Delete the teacher
+    await teacher.destroy();
+
+    res.json({
+      message: 'Teacher deleted successfully',
+      success: true
+    });
+  } catch (error) {
+    console.error('Delete teacher error:', error);
+    res.status(500).json({ message: 'Error deleting teacher' });
+  }
+};
+
 module.exports = {
   inviteTeacher,
   getInvitations,
@@ -253,5 +354,7 @@ module.exports = {
   toggleTeacherStatus,
   revokeInvitation,
   registerTeacher,
-  getInvitationByToken
+  getInvitationByToken,
+  createCourse,
+  deleteTeacher
 };

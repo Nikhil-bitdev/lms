@@ -12,6 +12,9 @@ const AssignmentCard = ({ assignment, courseId, userRole }) => {
   const timeUntilDue = dueDate - now;
   const daysUntilDue = Math.ceil(timeUntilDue / (1000 * 60 * 60 * 24));
   
+  const isAdmin = userRole === 'admin';
+  const isTeacher = userRole === 'teacher';
+  
   // Determine status based on submission and due date
   const getStatus = () => {
     if (assignment.submitted) return 'Submitted';
@@ -37,88 +40,131 @@ const AssignmentCard = ({ assignment, courseId, userRole }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow p-6">
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
+    <div className="group relative bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-850 rounded-xl shadow-sm border-2 border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 p-6 overflow-hidden">
+      {/* Decorative gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      
+      <div className="relative flex justify-between items-start mb-4">
+        <div className="flex-1 pr-4">
           <div className="flex items-center space-x-3 mb-2">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {assignment.title}
-            </h3>
+            <div className="relative">
+              <div className="absolute inset-0 bg-blue-500/20 blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <h3 className="relative text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                {assignment.title}
+              </h3>
+            </div>
             {assignment.attachments && assignment.attachments.length > 0 && (
-              <div className="flex items-center text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 group-hover:scale-105 transition-transform">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
-                <span className="ml-1 text-sm">{assignment.attachments.length}</span>
+                <span className="text-sm font-medium">{assignment.attachments.length}</span>
               </div>
             )}
           </div>
-          <p className="text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">
+          <p className="text-gray-600 dark:text-gray-300 mb-3 line-clamp-2 leading-relaxed">
             {assignment.description}
           </p>
         </div>
-        <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[status]}`}>
+        <span className={`relative px-4 py-2 rounded-full text-sm font-semibold shadow-sm flex-shrink-0 ${statusColors[status]} ring-2 ring-offset-2 dark:ring-offset-gray-800 ${
+          status === 'Submitted' ? 'ring-green-500/20' :
+          status === 'Overdue' ? 'ring-red-500/20' :
+          status === 'Due Soon' ? 'ring-orange-500/20' : 'ring-blue-500/20'
+        } group-hover:scale-105 transition-transform duration-300`}>
           {status}
         </span>
       </div>
 
       {/* Assignment Details */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 text-sm">
-        <div>
-          <p className="text-gray-500 dark:text-gray-400">Due Date</p>
-          <p className="font-medium text-gray-900 dark:text-white">
-            {dueDate.toLocaleDateString()}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            {dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </p>
+      <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 text-sm">
+        <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
+          <div className="flex-shrink-0 mt-0.5">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Due Date</p>
+            <p className="font-bold text-gray-900 dark:text-white">
+              {dueDate.toLocaleDateString()}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+              </svg>
+              {dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </div>
         </div>
         
-        <div>
-          <p className="text-gray-500 dark:text-gray-400">Time Remaining</p>
-          <p className={`font-medium ${isOverdue ? 'text-red-600 dark:text-red-400' : 
-            daysUntilDue <= 1 ? 'text-orange-600 dark:text-orange-400' : 
-            'text-green-600 dark:text-green-400'}`}>
-            {formatTimeRemaining()}
-          </p>
+        <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg group-hover:bg-purple-50 dark:group-hover:bg-purple-900/20 transition-colors">
+          <div className="flex-shrink-0 mt-0.5">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-lg ${
+              isOverdue ? 'bg-gradient-to-br from-red-500 to-red-600' :
+              daysUntilDue <= 1 ? 'bg-gradient-to-br from-orange-500 to-orange-600' :
+              'bg-gradient-to-br from-green-500 to-green-600'
+            }`}>
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Time Remaining</p>
+            <p className={`font-bold ${isOverdue ? 'text-red-600 dark:text-red-400' : 
+              daysUntilDue <= 1 ? 'text-orange-600 dark:text-orange-400' : 
+              'text-green-600 dark:text-green-400'}`}>
+              {formatTimeRemaining()}
+            </p>
+          </div>
         </div>
 
-        <div>
-          <p className="text-gray-500 dark:text-gray-400">Points</p>
-          <p className="font-medium text-gray-900 dark:text-white">
-            {assignment.totalPoints} pts
-          </p>
+        <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg group-hover:bg-amber-50 dark:group-hover:bg-amber-900/20 transition-colors">
+          <div className="flex-shrink-0 mt-0.5">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Points</p>
+            <p className="font-bold text-gray-900 dark:text-white text-lg">
+              {assignment.totalPoints}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">total points</p>
+          </div>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex space-x-3">
+      <div className="relative flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex flex-wrap gap-2">
           <Link
             to={`/assignments/${assignment.id}`}
-            className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg shadow-md hover:shadow-xl transform hover:scale-[1.02] active:scale-95 transition-all duration-300"
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
             View Details
           </Link>
           
-          {userRole === 'teacher' && (
+          {(isTeacher || isAdmin) && (
             <Link
-              to={`/assignments/${assignment.id}/submissions`}
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              to={`/assignments/${assignment.id}#submissions`}
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-95 transition-all duration-300"
             >
-              View Submissions
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              View Submissions ({assignment.submissionCount || 0})
             </Link>
           )}
         </div>
-        
-        {userRole !== 'teacher' && !assignment.submitted && !isOverdue && (
-          <Link
-            to={`/assignments/${assignment.id}/submit`}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
-          >
-            Submit Assignment
-          </Link>
-        )}
       </div>
     </div>
   );
@@ -155,28 +201,51 @@ const AssignmentList = () => {
   const isTeacher = user?.role === 'teacher' || user?.role === 'instructor';
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Assignments
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {isTeacher ? 'Manage course assignments' : 'View and submit assignments'}
-          </p>
-        </div>
+    <div className="max-w-7xl mx-auto p-6 space-y-8">
+      {/* Header Section */}
+      <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 rounded-2xl shadow-2xl p-8 overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 -mt-4 -mr-4 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl" />
         
-        {isTeacher && (
-          <Link
-            to={`/courses/${courseId}/assignments/create`}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors flex items-center space-x-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            <span>Create Assignment</span>
-          </Link>
-        )}
+        <div className="relative flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-4 bg-white/10 backdrop-blur-sm rounded-2xl">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">
+                Assignments
+              </h1>
+              <p className="text-blue-100 text-lg">
+                {isTeacher ? 'Manage course assignments' : 'View and submit assignments'}
+              </p>
+              <div className="flex items-center gap-4 mt-3">
+                <div className="flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                    <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-white text-sm font-medium">{assignments.length} Total</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {isTeacher && (
+            <Link
+              to={`/courses/${courseId}/assignments/create`}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-700 rounded-xl hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-white/50 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95 font-semibold"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span>Create Assignment</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -186,21 +255,41 @@ const AssignmentList = () => {
       )}
 
       {assignments.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="w-24 h-24 mx-auto mb-4 text-gray-300 dark:text-gray-600">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+        <div className="relative bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800 rounded-2xl shadow-lg border-2 border-dashed border-gray-300 dark:border-gray-600 p-16 text-center overflow-hidden">
+          {/* Decorative background pattern */}
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, #60a5fa 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">
-            No assignments yet
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400">
-            {isTeacher 
-              ? 'Create your first assignment to get started'
-              : 'No assignments have been posted for this course yet'
-            }
-          </p>
+          
+          {/* Content */}
+          <div className="relative">
+            <div className="mx-auto w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-6 shadow-xl animate-bounce-slow">
+              <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              No Assignments Yet
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 text-lg max-w-md mx-auto">
+              {isTeacher 
+                ? 'Start engaging your students by creating your first assignment.' 
+                : 'Check back soon! Your instructor will post assignments here.'}
+            </p>
+            
+            {isTeacher && (
+              <Link
+                to={`/courses/${courseId}/assignments/create`}
+                className="inline-flex items-center gap-2 mt-8 px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-blue-500/50 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 font-semibold"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                <span>Create First Assignment</span>
+              </Link>
+            )}
+          </div>
         </div>
       ) : (
         <div className="grid gap-6">

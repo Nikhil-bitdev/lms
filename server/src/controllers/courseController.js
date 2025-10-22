@@ -248,7 +248,19 @@ const getMyCourses = async (req, res) => {
   try {
     let courses = [];
 
-    if (req.user.role === 'teacher' || req.user.role === 'instructor' || req.user.role === 'admin') {
+    if (req.user.role === 'admin') {
+      // For admins: get ALL courses
+      courses = await Course.findAll({
+        include: [
+          {
+            model: User,
+            as: 'teacher',
+            attributes: ['id', 'firstName', 'lastName', 'email']
+          }
+        ],
+        order: [['createdAt', 'DESC']]
+      });
+    } else if (req.user.role === 'teacher' || req.user.role === 'instructor') {
       // For teachers: get courses they are teaching
       courses = await Course.findAll({
         where: { teacherId: req.user.id },
@@ -350,7 +362,10 @@ const getEnrolledStudents = async (req, res) => {
       }]
     });
 
-    res.json({ enrollments });
+    // Extract student data from enrollments
+    const students = enrollments.map(enrollment => enrollment.User);
+
+    res.json(students);
   } catch (error) {
     console.error('Get enrolled students error:', error);
     res.status(500).json({ message: 'Error retrieving enrolled students' });

@@ -20,9 +20,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      console.log('Login attempt with:', values);
       const user = await login(values.email, values.password);
-      console.log('Login successful:', user);
       toast.success('Login successful!');
       
       // Redirect based on user role

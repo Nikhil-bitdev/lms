@@ -15,11 +15,11 @@ router.get('/my-courses', auth, courseController.getMyCourses);
 // Get single course
 router.get('/:id', auth, courseController.getCourseById);
 
-// Create course (teachers and admins only)
+// Create course (admin only - teachers get courses assigned by admin)
 router.post(
   '/',
   auth,
-  authorize('teacher', 'admin'),
+  authorize('admin'),
   createCourseValidation,
   validate,
   courseController.createCourse

@@ -8,13 +8,17 @@ const authorize = require('../middleware/authorize');
 router.use(auth);
 router.use(authorize('admin'));
 
-// Teacher invitation management
+// Teacher invitation management (specific routes first)
 router.post('/teachers/invite', adminController.inviteTeacher);
 router.get('/teachers/invitations', adminController.getInvitations);
 router.delete('/teachers/invitations/:id', adminController.revokeInvitation);
 
-// Teacher management
+// Teacher management (generic routes after specific ones)
 router.get('/teachers', adminController.getTeachers);
+router.delete('/teachers/:id', adminController.deleteTeacher);
 router.patch('/teachers/:id/toggle-status', adminController.toggleTeacherStatus);
+
+// Course management (admin creates courses and assigns to teachers)
+router.post('/courses', adminController.createCourse);
 
 module.exports = router;

@@ -12,9 +12,6 @@ const FacultyDashboardSidebar = () => (
       <NavLink to="/my-courses" className="block text-gray-600 dark:text-gray-300">
         My Courses
       </NavLink>
-      <NavLink to="/courses/create" className="block text-gray-600 dark:text-gray-300">
-        Create Course
-      </NavLink>
       <NavLink to="/profile" className="block text-gray-600 dark:text-gray-300">
         Profile
       </NavLink>

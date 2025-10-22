@@ -7,6 +7,7 @@ import CoursesPage from './pages/CoursesPage';
 import CourseDetailsPage from './pages/CourseDetailsPage';
 import CreateCoursePage from './pages/CreateCoursePage';
 import MaterialsPage from './pages/MaterialsPage';
+import AllMaterialsPage from './pages/AllMaterialsPage';
 import AssignmentsPage from './pages/AssignmentsPage';
 import AllAssignmentsPage from './pages/AllAssignmentsPage';
 import CreateAssignmentPage from './pages/CreateAssignmentPage';
@@ -18,6 +19,8 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import AssignmentUpload from './components/courses/AssignmentUpload';
 import AssignmentsList from './components/courses/AssignmentsList';
+import UploadTestPage from './pages/UploadTestPage';
+import UploadDiagnosticPage from './pages/UploadDiagnosticPage';
 
 // Simple protected route using AuthContext
 const ProtectedRoute = ({ children }) => {
@@ -62,12 +65,16 @@ function App() {
           <Route path="courses" element={<CoursesPage />} />
           <Route path="courses/:id" element={<CourseDetailsPage />} />
           <Route path="courses/:courseId/materials" element={<MaterialsPage />} />
+          <Route path="materials" element={<AllMaterialsPage />} />
+          <Route path="materials/:courseId" element={<MaterialsPage />} />
           <Route path="assignments" element={<AllAssignmentsPage />} />
           <Route path="courses/:courseId/assignments" element={<AssignmentsPage />} />
           <Route path="courses/:courseId/assignments/create" element={<CreateAssignmentPage />} />
           <Route path="courses/:courseId/assignments/upload" element={<AssignmentUpload />} />
           <Route path="assignments/:assignmentId" element={<AssignmentDetailsPage />} />
           <Route path="create-course" element={<CreateCoursePage />} />
+          <Route path="upload-test" element={<UploadTestPage />} />
+          <Route path="upload-diagnostic" element={<UploadDiagnosticPage />} />
         </Route>
 
         {/* Fallback */}

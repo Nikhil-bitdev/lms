@@ -9,16 +9,15 @@ export const AuthProvider = ({ children }) => {
   const [apiError, setApiError] = useState(null);
 
   useEffect(() => {
-    console.log('[Auth] Provider mounted, starting auth check');
     checkAuth();
     
-    // Fallback: force loading to false after 5 seconds
+    // Fallback: force loading to false after 10 seconds
     const fallbackTimer = setTimeout(() => {
       if (loading) {
         console.warn('Auth check taking too long, proceeding without auth');
         setLoading(false);
       }
-    }, 5000);
+    }, 10000);
 
     return () => clearTimeout(fallbackTimer);
   }, []);
@@ -28,31 +27,24 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          console.log('[Auth] Token found, fetching profile...');
           const response = await api.get('/auth/profile');
           setUser(response.data.user);
-          console.log('[Auth] Profile loaded:', response.data.user?.email);
         } catch (error) {
           console.error('[Auth] Profile fetch failed:', error?.message || error);
           setApiError(error?.message || 'Failed to fetch profile');
           localStorage.removeItem('token');
         }
-      } else {
-        console.log('[Auth] No token present, user is guest');
       }
     } catch (error) {
       console.error('[Auth] Initialization failed:', error?.message || error);
     } finally {
-      console.log('[Auth] Setting loading = false');
       setLoading(false);
     }
   };
 
   const login = async (email, password) => {
-    console.log('[Auth] login() called with', email);
     try {
       const response = await api.post('/auth/login', { email, password });
-      console.log('[Auth] login response', response.data);
       const { token, user } = response.data;
       localStorage.setItem('token', token);
       setUser(user);

@@ -10,14 +10,9 @@ const uploadSchema = Yup.object().shape({
     .min(3, 'Title must be at least 3 characters')
     .max(100, 'Title must be less than 100 characters')
     .required('Title is required'),
-  description: Yup.string()
-    .max(500, 'Description must be less than 500 characters'),
   type: Yup.string()
-    .oneOf(['assignment', 'notes', 'lecture', 'reference', 'other'], 'Invalid type')
-    .required('Type is required'),
-  dueDate: Yup.date()
-    .nullable()
-    .min(new Date(), 'Due date must be in the future')
+    .oneOf(['notes', 'lecture', 'reference', 'other'], 'Invalid type')
+    .required('Type is required')
 });
 
 export default function MaterialUpload({ courseId, onUploadSuccess, onClose }) {
@@ -58,6 +53,10 @@ export default function MaterialUpload({ courseId, onUploadSuccess, onClose }) {
       return;
     }
 
+    console.log('[UPLOAD] Starting upload to course:', courseId);
+    console.log('[UPLOAD] Form values:', values);
+    console.log('[UPLOAD] File:', selectedFile.name, selectedFile.size);
+
     try {
       await materialService.uploadMaterial(courseId, values, selectedFile);
       toast.success('Material uploaded successfully!');
@@ -65,7 +64,10 @@ export default function MaterialUpload({ courseId, onUploadSuccess, onClose }) {
       onClose && onClose();
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error(error.response?.data?.message || 'Failed to upload material');
+      
+      // Show error message
+      const errorMessage = error.response?.data?.message || 'Failed to upload material';
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -91,9 +93,7 @@ export default function MaterialUpload({ courseId, onUploadSuccess, onClose }) {
         <Formik
           initialValues={{
             title: '',
-            description: '',
-            type: 'notes',
-            dueDate: ''
+            type: 'notes'
           }}
           validationSchema={uploadSchema}
           onSubmit={handleSubmit}
@@ -174,34 +174,12 @@ export default function MaterialUpload({ courseId, onUploadSuccess, onClose }) {
                     className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="notes">Notes</option>
-                    <option value="assignment">Assignment</option>
                     <option value="lecture">Lecture Material</option>
                     <option value="reference">Reference</option>
                     <option value="other">Other</option>
                   </Field>
                 </div>
               </div>
-
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Description (Optional)
-                </label>
-                <Field
-                  as="textarea"
-                  name="description"
-                  rows="3"
-                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Describe the material..."
-                />
-              </div>
-
-              <InputField
-                label="Due Date (Optional)"
-                name="dueDate"
-                type="datetime-local"
-                error={errors.dueDate}
-                touched={touched.dueDate}
-              />
 
               <div className="flex justify-end space-x-3 pt-4">
                 <button

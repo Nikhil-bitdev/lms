@@ -9,7 +9,6 @@ const LazyApp = React.lazy(() => {
   return import('./App.jsx');
 });
 import ErrorBoundary from './components/ErrorBoundary.jsx'
-import DebugStatus from './components/DebugStatus.jsx'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 
@@ -48,7 +47,6 @@ createRoot(document.getElementById('root')).render(
           <Suspense fallback={<BootFallback />}> 
             <LazyApp />
           </Suspense>
-          <DebugStatus />
           <Toaster 
             position="top-right"
             toastOptions={{

@@ -9,9 +9,8 @@ const createAssignmentValidation = [
     .withMessage('Assignment title must be between 3 and 100 characters'),
 
   body('description')
-    .trim()
-    .notEmpty()
-    .withMessage('Assignment description is required'),
+    .optional()
+    .trim(),
 
   body('dueDate')
     .notEmpty()

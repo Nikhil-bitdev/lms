@@ -65,15 +65,29 @@ const uploadMaterial = async (req, res) => {
     const { courseId, title, description, type, dueDate } = req.body;
     const uploadedBy = req.user.id;
     
-    // Check if user is a teacher/admin and has access to the course
+    // Check if course exists
     const course = await Course.findByPk(courseId);
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
     
-    // Check if user is the teacher of the course or an admin
-    if (course.teacherId !== uploadedBy && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Only course teachers can upload materials' });
+    // Authorization check:
+    // - Admins can upload to any course
+    // - Teachers can ONLY upload to their own courses (where they are the course teacher)
+    const isAdmin = req.user.role === 'admin';
+    const isCourseTeacher = course.teacherId === uploadedBy;
+    
+    if (!isAdmin && !isCourseTeacher) {
+      return res.status(403).json({ 
+        message: 'You can only upload materials to courses you teach',
+        debug: { 
+          userRole: req.user.role, 
+          userId: uploadedBy, 
+          courseTeacherId: course.teacherId,
+          courseId: courseId,
+          courseTitle: course.title
+        }
+      });
     }
     
     if (!req.file) {
@@ -109,7 +123,7 @@ const uploadMaterial = async (req, res) => {
         {
           model: User,
           as: 'uploader',
-          attributes: ['name', 'email']
+          attributes: ['id', 'firstName', 'lastName', 'email']
         }
       ]
     });
@@ -143,7 +157,7 @@ const getCourseMaterials = async (req, res) => {
         {
           model: User,
           as: 'uploader',
-          attributes: ['name', 'email']
+          attributes: ['id', 'firstName', 'lastName', 'email']
         }
       ],
       order: [['createdAt', 'DESC']]
@@ -203,7 +217,7 @@ const getMaterialDetails = async (req, res) => {
         {
           model: User,
           as: 'uploader',
-          attributes: ['name', 'email']
+          attributes: ['id', 'firstName', 'lastName', 'email']
         }
       ]
     });
@@ -256,7 +270,7 @@ const updateMaterial = async (req, res) => {
         {
           model: User,
           as: 'uploader',
-          attributes: ['name', 'email']
+          attributes: ['id', 'firstName', 'lastName', 'email']
         }
       ]
     });
