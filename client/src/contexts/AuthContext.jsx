@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { waitForApiBaseURL } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -24,6 +24,9 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
+      // Wait for API base URL to be resolved
+      await waitForApiBaseURL();
+      
       const token = localStorage.getItem('token');
       if (token) {
         try {

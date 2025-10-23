@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import materialService from '../../services/materialService';
+import ConfirmDialog from '../ConfirmDialog';
 
 export default function MaterialList({ courseId, teacherId }) {
   const [materials, setMaterials] = useState([]);
@@ -60,18 +61,29 @@ export default function MaterialList({ courseId, teacherId }) {
     }
   };
 
-  const handleDelete = async (materialId) => {
-    if (!window.confirm('Are you sure you want to delete this material?')) {
-      return;
-    }
+  // Confirm dialog state for deleting materials
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [toDelete, setToDelete] = useState(null); // material object
 
+  const handleDelete = (material) => {
+    // open confirm dialog
+    setToDelete(material);
+    setConfirmOpen(true);
+  };
+
+  const performDelete = async () => {
+    if (!toDelete) return;
     try {
-      await materialService.deleteMaterial(materialId);
+      await materialService.deleteMaterial(toDelete.id);
       toast.success('Material deleted successfully');
+      // refresh list
       fetchMaterials();
     } catch (error) {
       console.error('Delete error:', error);
       toast.error('Failed to delete material');
+    } finally {
+      setConfirmOpen(false);
+      setToDelete(null);
     }
   };
 
@@ -269,7 +281,7 @@ export default function MaterialList({ courseId, teacherId }) {
 
                     {isTeacherOrAdmin && material.uploadedBy === user.id && (
                       <button
-                        onClick={() => handleDelete(material.id)}
+                        onClick={() => handleDelete(material)}
                         className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-95"
                         title="Delete material"
                       >
@@ -285,6 +297,19 @@ export default function MaterialList({ courseId, teacherId }) {
           })}
         </div>
       )}
+      {/* Confirm dialog for delete action */}
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => { setConfirmOpen(false); setToDelete(null); }}
+        onConfirm={performDelete}
+        title="Delete material"
+        message={
+          `Are you sure you want to delete "${toDelete?.title || toDelete?.originalName || ''}"?\nThis action cannot be undone.`
+        }
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 }

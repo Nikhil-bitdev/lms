@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import MaterialUpload from '../components/materials/MaterialUpload';
 import MaterialList from '../components/materials/MaterialList';
@@ -11,6 +11,7 @@ export default function MaterialsPage() {
   const [loading, setLoading] = useState(true);
   const { courseId } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchCourse();
@@ -98,7 +99,7 @@ export default function MaterialsPage() {
             <svg className="w-5 h-5 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <div>
+            <div className="flex-1">
               <h3 className="text-sm font-medium text-green-800 dark:text-green-300">
                 Instructor Tools
               </h3>
@@ -106,6 +107,17 @@ export default function MaterialsPage() {
                 Upload course materials, assignments, notes, and resources for your students. 
                 Supported formats include PDF, Word, PowerPoint, Excel, images, videos, and more.
               </p>
+              <div className="flex gap-3 mt-3">
+                <button
+                  onClick={() => navigate(`/courses/${courseId}/assignments`)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  View Submissions
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -124,22 +124,50 @@ export default function AllMaterialsPage() {
         ) : (
           courses.map((course) => {
             const materials = materialsMap[course.id] || [];
+            const initials = course.title ? course.title.split(' ').map(s => s[0]).slice(0,2).join('') : '';
             return (
               <button
                 key={course.id}
                 onClick={() => navigate(`/courses/${course.id}/materials`)}
-                className="relative group w-full text-left bg-white/70 dark:bg-gray-800/70 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-md transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="relative group w-full max-w-[14rem] text-left bg-white/70 dark:bg-gray-800/70 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden backdrop-blur-md transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-blue-400 aspect-square p-0 mx-auto"
                 style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)' }}
               >
-                {/* Glassy Gradient Header */}
-                <div className="relative bg-gradient-to-r from-purple-600/90 to-blue-600/90 p-4 flex flex-col gap-0.5">
-                  <div className="absolute inset-0 bg-white/10 backdrop-blur-sm rounded-b-2xl pointer-events-none" />
-                  <h2 className="relative text-base font-bold text-white leading-tight drop-shadow-sm z-10">
-                    {course.title}
-                  </h2>
-                  <p className="relative text-purple-100 text-xs z-10">
-                    {course.code} • {materials.length} material{materials.length !== 1 ? 's' : ''}
-                  </p>
+                {/* subtle hover overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+                <div className="relative h-full flex flex-col items-center justify-center p-6">
+                  {/* Icon / Thumbnail */}
+                  <div className="relative">
+                    <div className="w-16 h-16 md:w-18 md:h-18 rounded-2xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white text-lg md:text-xl font-bold shadow-md transform group-hover:scale-102 transition-transform">
+                      {course.thumbnail ? (
+                        <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover rounded-3xl" />
+                      ) : (
+                        <span className="select-none">{initials}</span>
+                      )}
+                    </div>
+                    <div className="absolute -bottom-3 right-0">
+                      <span aria-label={`${materials.length} materials`} className="inline-flex items-center px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-[10px] font-semibold text-gray-800 dark:text-gray-200 shadow-sm border border-gray-100 dark:border-gray-700">
+                        {materials.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <div className="mt-4 text-center">
+                    <h3 className="text-sm md:text-base font-semibold text-gray-900 dark:text-white leading-tight truncate max-w-[9rem]">
+                      {course.title}
+                    </h3>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                      {course.code}
+                    </p>
+                  </div>
+
+                  {/* CTA overlay on hover */}
+                  <div className="absolute inset-0 flex items-end justify-center p-4 pointer-events-none">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                      <span className="inline-flex items-center gap-2 px-3 py-2 bg-white/90 dark:bg-gray-800/80 rounded-full text-sm font-semibold text-gray-900 dark:text-white shadow">Open Materials</span>
+                    </div>
+                  </div>
                 </div>
               </button>
             );

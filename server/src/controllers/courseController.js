@@ -152,9 +152,23 @@ const updateCourse = async (req, res) => {
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    // Check if user has permission to update
+    // Only admin can change teacherId
+    if (req.body.teacherId && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admin can change the teacher of a course' });
+    }
+
+    // Only admin or the current teacher can update other fields
     if (req.user.role !== 'admin' && course.teacherId !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized to update this course' });
+    }
+
+    // If teacherId is being updated, check that the new teacher exists and is a teacher
+    if (req.body.teacherId) {
+      const { User } = require('../models');
+      const newTeacher = await User.findByPk(req.body.teacherId);
+      if (!newTeacher || newTeacher.role !== 'teacher') {
+        return res.status(400).json({ message: 'teacherId must be a valid teacher user' });
+      }
     }
 
     const updates = req.body;

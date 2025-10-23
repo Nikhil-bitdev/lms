@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ConfirmDialog from '../components/ConfirmDialog';
+import AdminCourseList from '../components/admin/AdminCourseList';
+import EditCourseTeacherModal from '../components/admin/EditCourseTeacherModal';
 import { 
   UserPlusIcon, 
   UserGroupIcon, 
@@ -169,6 +171,7 @@ const AdminDashboardPage = () => {
   const activeTeachers = teachers.filter(t => t.isActive);
   const inactiveTeachers = teachers.filter(t => !t.isActive);
 
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -244,6 +247,9 @@ const AdminDashboardPage = () => {
           </div>
         </div>
       </div>
+
+      {/* All Courses List with Edit Teacher */}
+      <AdminCourseList teachers={activeTeachers} />
 
       {/* Pending Invitations */}
       {pendingInvitations.length > 0 && (
@@ -481,7 +487,6 @@ const AdminDashboardPage = () => {
                     })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
                     placeholder="e.g., CS-101"
-                    pattern="[A-Z0-9-]{3,20}"
                     title="3-20 characters, uppercase letters, numbers, and hyphens only"
                   />
                 </div>

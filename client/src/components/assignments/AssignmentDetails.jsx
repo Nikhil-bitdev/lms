@@ -280,7 +280,7 @@ const AssignmentDetails = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 space-y-4">
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
       {error && (
         <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
           {error}
@@ -288,25 +288,25 @@ const AssignmentDetails = () => {
       )}
 
       {/* Assignment Header */}
-      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none" />
         
-        <div className="relative p-5">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-4">
+        <div className="relative p-8">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6 mb-6">
             <div className="flex-1">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-md">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2 leading-tight">
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 leading-tight">
                     {assignment.title}
                   </h1>
                   {assignment.description && (
-                    <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                    <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
                       {assignment.description}
                     </p>
                   )}
@@ -314,12 +314,12 @@ const AssignmentDetails = () => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-2 lg:self-start">
+            <div className="flex items-center space-x-3 lg:self-start">
               <Link
                 to="/assignments"
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all shadow-sm hover:shadow-md font-medium"
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 border-2 border-gray-300 dark:border-gray-600 rounded-xl hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95 font-medium"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 <span>Back</span>
@@ -328,21 +328,21 @@ const AssignmentDetails = () => {
           </div>
           
           {/* Assignment Details Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pt-6 border-t-2 border-gray-200 dark:border-gray-700">
             {/* Due Date Card */}
-            <div className="relative bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
-              <div className="flex items-start gap-2">
-                <div className="p-1.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="relative bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-xl p-5 border-2 border-blue-200 dark:border-blue-700 hover:shadow-lg transition-all transform hover:scale-105">
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-0.5">Due Date</h3>
-                  <p className="text-base font-bold text-gray-900 dark:text-white">
+                  <h3 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Due Date</h3>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
                     {dueDate.toLocaleDateString()}
                   </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                     {dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
@@ -350,34 +350,34 @@ const AssignmentDetails = () => {
             </div>
             
             {/* Status Card */}
-            <div className={`relative rounded-lg p-3 border ${
+            <div className={`relative rounded-xl p-5 border-2 hover:shadow-lg transition-all transform hover:scale-105 ${
               isOverdue 
                 ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 border-red-200 dark:border-red-700' 
                 : daysUntilDue <= 1 
                 ? 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/30 border-orange-200 dark:border-orange-700'
                 : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 border-green-200 dark:border-green-700'
             }`}>
-              <div className="flex items-start gap-2">
-                <div className={`p-1.5 rounded-lg ${
+              <div className="flex items-start gap-3">
+                <div className={`p-2.5 rounded-lg shadow-md ${
                   isOverdue 
                     ? 'bg-gradient-to-br from-red-500 to-red-600' 
                     : daysUntilDue <= 1 
                     ? 'bg-gradient-to-br from-orange-500 to-orange-600'
                     : 'bg-gradient-to-br from-green-500 to-green-600'
                 }`}>
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className={`text-xs font-bold uppercase tracking-wide mb-0.5 ${
+                  <h3 className={`text-xs font-bold uppercase tracking-wider mb-1 ${
                     isOverdue 
                       ? 'text-red-600 dark:text-red-400' 
                       : daysUntilDue <= 1 
                       ? 'text-orange-600 dark:text-orange-400'
                       : 'text-green-600 dark:text-green-400'
                   }`}>Status</h3>
-                  <p className={`text-base font-bold ${
+                  <p className={`text-lg font-bold ${
                     isOverdue 
                       ? 'text-red-700 dark:text-red-300' 
                       : daysUntilDue <= 1 
@@ -391,19 +391,19 @@ const AssignmentDetails = () => {
             </div>
             
             {/* Points Card */}
-            <div className="relative bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 rounded-lg p-3 border border-amber-200 dark:border-amber-700">
-              <div className="flex items-start gap-2">
-                <div className="p-1.5 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="relative bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 rounded-xl p-5 border-2 border-amber-200 dark:border-amber-700 hover:shadow-lg transition-all transform hover:scale-105">
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg shadow-md">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-0.5">Points</h3>
-                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                  <h3 className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1">Points</h3>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
                     {assignment.totalPoints}
                   </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                     Total Points
                   </p>
                 </div>
@@ -413,41 +413,41 @@ const AssignmentDetails = () => {
           
           {/* Assignment Files */}
           {assignment.attachments && assignment.attachments.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="mt-6 pt-6 border-t-2 border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
               </div>
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                 Attached Files ({assignment.attachments.length})
               </h3>
             </div>
-            <div className="grid gap-2">
+            <div className="grid gap-3">
               {assignment.attachments.map((attachment, index) => (
                 <div
                   key={index}
-                  className="group flex items-center justify-between p-3 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-700/50 dark:to-blue-900/20 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all"
+                  className="group flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-700/50 dark:to-blue-900/20 rounded-xl border-2 border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg transition-all transform hover:scale-[1.02]"
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-md group-hover:scale-110 transition-transform">
+                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      <p className="text-base font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {attachment.originalName}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {attachment.mimetype}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => downloadAttachment(attachment)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-sm hover:shadow-md font-medium"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-500/50 transition-all shadow-md hover:shadow-xl transform hover:scale-105 active:scale-95 font-medium"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -464,32 +464,32 @@ const AssignmentDetails = () => {
 
       {/* Teacher/Admin View - Submissions */}
       {(isTeacher || isAdmin) && (
-        <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-blue-500/5 to-purple-500/5 pointer-events-none" />
           
-          <div className="relative p-5">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-md">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="relative p-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
                     Student Submissions
                   </h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {submissions.length} {submissions.length === 1 ? 'submission' : 'submissions'}
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    {submissions.length} {submissions.length === 1 ? 'submission' : 'submissions'} received
                   </p>
                 </div>
               </div>
               <Link
-                to={`/assignments/${assignmentId}/submissions`}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg font-semibold"
+                to={`/assignments/${assignmentId}#submissions`}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-blue-500/50 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 font-semibold"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
@@ -498,61 +498,61 @@ const AssignmentDetails = () => {
             </div>
           
           {submissions.length === 0 ? (
-            <div className="relative bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-700/30 dark:via-gray-700/30 dark:to-gray-700/30 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-8 text-center">
-              <div className="mx-auto w-16 h-16 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="relative bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-700/30 dark:via-gray-700/30 dark:to-gray-700/30 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-12 text-center">
+              <div className="mx-auto w-20 h-20 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center mb-5 shadow-lg animate-pulse">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h4 className="text-base font-bold text-gray-700 dark:text-gray-300 mb-1">
+              <h4 className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">
                 No Submissions Yet
               </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-gray-600 dark:text-gray-400">
                 Students haven't submitted their work yet
               </p>
             </div>
           ) : (
-            <div className="grid gap-3">
+            <div className="grid gap-4">
               {submissions.slice(0, 5).map((submission) => (
                 <div
                   key={submission.id}
-                  className="group p-4 bg-gradient-to-r from-white to-blue-50 dark:from-gray-700/50 dark:to-blue-900/20 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all"
+                  className="group p-5 bg-gradient-to-r from-white to-blue-50 dark:from-gray-700/50 dark:to-blue-900/20 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-xl transition-all"
                 >
                   {/* Student Info Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-                    <div className="flex items-center space-x-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <div className="flex items-center space-x-4">
                       <div className="flex-shrink-0">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
-                          <span className="text-white font-bold text-sm">
+                        <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg ring-4 ring-blue-100 dark:ring-blue-900/50 group-hover:scale-110 transition-transform">
+                          <span className="text-white font-bold text-lg">
                             {submission.User?.firstName?.charAt(0)}{submission.User?.lastName?.charAt(0)}
                           </span>
                         </div>
                       </div>
                       <div>
-                        <p className="text-base font-bold text-gray-900 dark:text-white">
+                        <p className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                           {submission.User?.firstName} {submission.User?.lastName}
                         </p>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex items-center gap-2 mt-1">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
                             {new Date(submission.createdAt).toLocaleString()}
                           </p>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       {submission.grade !== null ? (
-                        <div className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg text-sm font-bold flex items-center gap-1.5">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg shadow-md ring-4 ring-green-100 dark:ring-green-900/50 font-bold flex items-center gap-2">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <span>{submission.grade}/{assignment.totalPoints}</span>
                         </div>
                       ) : (
-                        <div className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-sm font-bold flex items-center gap-1.5">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg shadow-md ring-4 ring-amber-100 dark:ring-amber-900/50 font-bold flex items-center gap-2">
+                          <svg className="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <span>Pending</span>
@@ -563,19 +563,19 @@ const AssignmentDetails = () => {
 
                   {/* Submission Content */}
                   {submission.content && (
-                    <div className="mb-3 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                      <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2">{submission.content}</p>
+                    <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{submission.content}</p>
                     </div>
                   )}
 
                   {/* Attached Files */}
                   {submission.attachments && submission.attachments.length > 0 && (
-                    <div className="space-y-2 mb-3">
-                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="space-y-2 mb-4">
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                         </svg>
-                        Files ({submission.attachments.length})
+                        Attached Files ({submission.attachments.length})
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {submission.attachments.map((file, index) => {
@@ -586,12 +586,12 @@ const AssignmentDetails = () => {
                             <button
                               key={index}
                               onClick={() => downloadAttachment(file)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-white dark:bg-gray-700 border border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all"
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 border-2 border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-400 dark:hover:border-blue-500 transition-all shadow-sm hover:shadow-md transform hover:scale-105 active:scale-95"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                               </svg>
-                              <span className="truncate max-w-[150px]">{fileName}</span>
+                              <span className="text-sm font-medium truncate max-w-[200px]">{fileName}</span>
                             </button>
                           );
                         })}

@@ -35,6 +35,9 @@ const DashboardPage = () => {
     pendingAssignments: 0,
     upcomingQuizzes: 0
   });
+  const [showSubmissionsModal, setShowSubmissionsModal] = useState(false);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [allSubmissions, setAllSubmissions] = useState([]);
 
   useEffect(() => {
     if (user) {
@@ -105,6 +108,40 @@ const DashboardPage = () => {
     }
   };
 
+  // Fetch submissions for assignments and open modal
+  const openSubmissionsModal = async () => {
+    setShowSubmissionsModal(true);
+    setSubmissionsLoading(true);
+    try {
+      const assignments = dashboardData.assignments || [];
+      console.log('[Dashboard] openSubmissionsModal - assignments count:', assignments.length, assignments.map(a=>a.id));
+      const results = await Promise.all(assignments.map(async (a) => {
+        try {
+          const res = await assignmentService.getAssignmentSubmissions(a.id);
+          console.log(`[Dashboard] submissions for assignment ${a.id}:`, (res.submissions || []).length);
+          return { assignment: a, submissions: res.submissions || [] };
+        } catch (err) {
+          console.error(`[Dashboard] error fetching submissions for assignment ${a.id}:`, err?.response?.status, err?.response?.data || err.message || err);
+          return { assignment: a, submissions: [] };
+        }
+      }));
+
+      const flattened = [];
+      results.forEach((r) => {
+        (r.submissions || []).forEach((s) => {
+          flattened.push({ assignmentId: r.assignment.id, assignmentTitle: r.assignment.title, submission: s });
+        });
+      });
+
+      setAllSubmissions(flattened);
+    } catch (error) {
+      console.error('Error fetching submissions for dashboard:', error);
+      toast.error('Failed to load submissions');
+    } finally {
+      setSubmissionsLoading(false);
+    }
+  };
+
   if (!user) {
     return <LoadingSpinner />;
   }
@@ -113,12 +150,14 @@ const DashboardPage = () => {
     return <LoadingSpinner />;
   }
 
-  const isTeacher = user.role === 'teacher' || user.role === 'admin';
+  const isTeacher = user.role === 'teacher' || user.role === 'admin' || user.role === 'instructor';
   const isStudent = user.role === 'student';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        {/* ...removed teacher's course cards section... */}
         
         {/* Hero Welcome Section */}
         <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl shadow-2xl">
@@ -251,7 +290,7 @@ const DashboardPage = () => {
                     </button>
 
                     <button
-                      onClick={() => navigate('/assignments')}
+                      onClick={openSubmissionsModal}
                       className="group relative overflow-hidden bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-6 hover:shadow-lg transition-all duration-300 border border-purple-200 dark:border-purple-800 hover:scale-105"
                     >
                       <div className="flex items-start gap-4">
@@ -311,6 +350,8 @@ const DashboardPage = () => {
                         </div>
                       </div>
                     </button>
+
+                    {/* Submissions Modal Trigger: fetch recent submissions for teacher's assignments */}
 
                     <button
                       onClick={() => navigate('/courses')}
@@ -677,6 +718,54 @@ const DashboardPage = () => {
         confirmText="Delete Assignment"
         cancelText="Cancel"
       />
+
+      {/* Submissions Modal (Teacher) */}
+      {showSubmissionsModal && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-6">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSubmissionsModal(false)} />
+          <div className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Student Submissions</h3>
+                <button onClick={() => setShowSubmissionsModal(false)} className="text-sm text-gray-500 hover:text-gray-700">Close</button>
+              </div>
+
+              {submissionsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : allSubmissions.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-600 dark:text-gray-400">No submissions found across your assignments.</p>
+                </div>
+              ) : (
+                <div className="space-y-3 p-2 max-h-[60vh] overflow-auto">
+                  {allSubmissions.map((item) => (
+                    <div key={item.submission.id} className="group p-4 bg-gradient-to-r from-white to-blue-50 dark:from-gray-700/50 dark:to-blue-900/20 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:shadow-xl transition-all">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-lg font-semibold text-gray-900 dark:text-white">{item.submission.User?.firstName} {item.submission.User?.lastName}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{item.assignmentTitle} • Submitted: {new Date(item.submission.submittedAt).toLocaleString()}</p>
+                          {item.submission.attachments && item.submission.attachments.length > 0 && (
+                            <div className="mt-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1" /></svg>
+                              <span>{item.submission.attachments.length} attachment(s)</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <Link to={`/assignments/${item.assignmentId}#submissions`} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Open</Link>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

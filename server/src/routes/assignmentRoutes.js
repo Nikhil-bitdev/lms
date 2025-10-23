@@ -11,7 +11,7 @@ const { createAssignmentValidation } = require('../middleware/validations/assign
 router.post(
   '/',
   auth,
-  authorize('teacher', 'admin'),
+  authorize('teacher', 'instructor', 'admin'),
   upload.array('files', 5),
   createAssignmentValidation,
   validate,
@@ -43,7 +43,7 @@ router.get(
 router.get(
   '/:assignmentId/submissions',
   auth,
-  authorize('teacher', 'admin'),
+  authorize('teacher', 'instructor', 'admin'),
   assignmentController.getAssignmentSubmissions
 );
 
@@ -60,7 +60,7 @@ router.post(
 router.post(
   '/submissions/:submissionId/grade',
   auth,
-  authorize('teacher', 'admin'),
+  authorize('teacher', 'instructor', 'admin'),
   assignmentController.gradeSubmission
 );
 
@@ -68,7 +68,7 @@ router.post(
 router.delete(
   '/:id',
   auth,
-  authorize('admin', 'teacher'),
+  authorize('admin', 'teacher', 'instructor'),
   assignmentController.deleteAssignment
 );
 

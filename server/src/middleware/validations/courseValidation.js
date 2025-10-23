@@ -85,7 +85,14 @@ const updateCourseValidation = [
   body('isPublished')
     .optional()
     .isBoolean()
-    .withMessage('isPublished must be a boolean value')
+    .withMessage('isPublished must be a boolean value'),
+
+  // Allow admin to update teacherId
+  body('teacherId')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('teacherId must be a valid user id')
+    .toInt()
 ];
 
 module.exports = {

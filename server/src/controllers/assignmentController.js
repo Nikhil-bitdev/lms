@@ -24,7 +24,7 @@ const createAssignment = async (req, res) => {
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    if (req.user.role !== 'admin' && course.teacherId !== req.user.id) {
+    if (req.user.role !== 'admin' && String(course.teacherId) !== String(req.user.id)) {
       return res.status(403).json({ message: 'Not authorized to create assignments in this course' });
     }
 
@@ -123,13 +123,6 @@ const submitAssignment = async (req, res) => {
       }
     });
 
-    if (existingSubmission) {
-      return res.status(400).json({ 
-        message: 'You have already submitted this assignment. Multiple submissions are not allowed.',
-        error: 'ALREADY_SUBMITTED'
-      });
-    }
-
     // Handle file uploads
     if (req.files && req.files.length > 0) {
       attachments = req.files.map(file => ({
@@ -143,18 +136,53 @@ const submitAssignment = async (req, res) => {
     // Check if past due date
     const isLate = new Date() > new Date(assignment.dueDate);
 
-    const submission = await Submission.create({
-      content,
-      attachments,
-      assignmentId,
-      userId: req.user.id,
-      status: isLate ? 'late' : 'submitted'
-    });
+    let submission;
+    if (existingSubmission) {
+      // Resubmission: update existing submission
+      console.log(`User ${req.user.id} resubmitting assignment ${assignmentId}`);
+      
+      // Delete old attachment files if new ones are uploaded
+      if (attachments.length > 0 && existingSubmission.attachments && existingSubmission.attachments.length > 0) {
+        const fs = require('fs');
+        const path = require('path');
+        for (const oldAttachment of existingSubmission.attachments) {
+          try {
+            fs.unlinkSync(path.join(__dirname, '../../uploads', oldAttachment.filename));
+            console.log(`Deleted old attachment: ${oldAttachment.filename}`);
+          } catch (err) {
+            console.warn(`Failed to delete old attachment ${oldAttachment.filename}:`, err.message);
+          }
+        }
+      }
 
-    res.status(201).json({
-      message: 'Assignment submitted successfully',
-      submission
-    });
+      // Update submission
+      await existingSubmission.update({
+        content,
+        attachments: attachments.length > 0 ? attachments : existingSubmission.attachments,
+        status: isLate ? 'late' : 'resubmitted',
+        updatedAt: new Date()
+      });
+
+      submission = existingSubmission;
+      res.status(200).json({
+        message: 'Assignment resubmitted successfully',
+        submission
+      });
+    } else {
+      // First submission
+      submission = await Submission.create({
+        content,
+        attachments,
+        assignmentId,
+        userId: req.user.id,
+        status: isLate ? 'late' : 'submitted'
+      });
+
+      res.status(201).json({
+        message: 'Assignment submitted successfully',
+        submission
+      });
+    }
   } catch (error) {
     console.error('Submit assignment error:', error);
     res.status(500).json({ message: 'Error submitting assignment' });
@@ -179,7 +207,7 @@ const gradeSubmission = async (req, res) => {
     }
 
     // Check if user has permission to grade
-    if (req.user.role !== 'admin' && submission.Assignment.Course.teacherId !== req.user.id) {
+    if (req.user.role !== 'admin' && String(submission.Assignment.Course.teacherId) !== String(req.user.id)) {
       return res.status(403).json({ message: 'Not authorized to grade this submission' });
     }
 
@@ -214,10 +242,33 @@ const getAssignmentSubmissions = async (req, res) => {
       return res.status(404).json({ message: 'Assignment not found' });
     }
 
-    // Check if user has permission to view submissions
-    if (req.user.role !== 'admin' && assignment.Course.teacherId !== req.user.id) {
-      console.log(`[Submissions] User ${req.user.id} not authorized. Course teacher is ${assignment.Course.teacherId}`);
-      return res.status(403).json({ message: 'Not authorized to view submissions' });
+    // Debug: log types/values to diagnose auth mismatches
+    console.log(`[Submissions] DEBUG types - assignment.Course.teacherId: (${typeof assignment.Course.teacherId}) ${assignment.Course.teacherId}, req.user.id: (${typeof req.user.id}) ${req.user.id}, req.user.role: ${req.user.role}`);
+
+    // Allow both teacher and instructor roles, and handle id type mismatches
+    const isAdmin = req.user.role === 'admin';
+    const isTeacher = req.user.role === 'teacher' || req.user.role === 'instructor';
+    const teacherId = assignment.Course.teacherId;
+    const userId = req.user.id;
+    if (!isAdmin && !(isTeacher && teacherId == userId)) {
+      console.log(`[Submissions] User ${userId} not authorized. Course teacher is ${teacherId}`);
+      // Add detailed debug info in the response for troubleshooting
+      return res.status(403).json({
+        message: 'Not authorized to view submissions',
+        debug: {
+          userId,
+          userRole: req.user.role,
+          teacherId,
+          teacherIdType: typeof teacherId,
+          userIdType: typeof userId,
+          possibleCauses: [
+            'teacherId in Course table does not match your teacher user id',
+            'The teacher user may not have the correct role (teacher or instructor)',
+            'There may be a type mismatch (string vs number) in the database',
+            'The frontend may be using a cached/old token or not logging in as the correct teacher user'
+          ]
+        }
+      });
     }
 
     const submissions = await Submission.findAll({
@@ -230,7 +281,31 @@ const getAssignmentSubmissions = async (req, res) => {
     });
 
     console.log(`[Submissions] Found ${submissions.length} submissions for assignment ${assignmentId}`);
-    res.json({ submissions });
+
+    // Enrich attachments with a download URL so frontend can directly link to files
+    const enriched = submissions.map(s => {
+      const sj = s.toJSON();
+      if (sj.attachments && Array.isArray(sj.attachments)) {
+        sj.attachments = sj.attachments.map(att => {
+          if (!att) return att;
+          // att may be a string (filename) or an object { filename, originalName, path, mimetype }
+          if (typeof att === 'string') {
+            return { filename: att, originalName: att, downloadUrl: `/api/assignments/download/${att}` };
+          }
+          const filename = att.filename || att.originalName;
+          return {
+            filename: att.filename || filename,
+            originalName: att.originalName || filename,
+            mimetype: att.mimetype,
+            downloadUrl: `/api/assignments/download/${att.filename || filename}`
+          };
+        });
+      }
+
+      return sj;
+    });
+
+    res.json({ submissions: enriched });
   } catch (error) {
     console.error('Get submissions error:', error);
     res.status(500).json({ message: 'Error retrieving submissions' });
