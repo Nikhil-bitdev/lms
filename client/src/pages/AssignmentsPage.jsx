@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import { courseService } from '../services/courseService';
+import { assignmentService } from '../services/assignmentService';
 import AssignmentList from '../components/assignments/AssignmentList';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -11,7 +12,10 @@ const AssignmentsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState(null);
+  const [dashboardData, setDashboardData] = useState({
+    courses: [],
+    assignments: []
+  });
   const [teacherCourses, setTeacherCourses] = useState([]);
 
   useEffect(() => {
@@ -22,11 +26,21 @@ const AssignmentsPage = () => {
       }
       if (user?.role === 'student') {
         try {
-          const response = await api.get('/dashboard');
-          setDashboardData(response.data);
+          const [coursesResponse, assignmentsResponse] = await Promise.all([
+            courseService.getMyCourses(),
+            assignmentService.getUserAssignments()
+          ]);
+
+          const courses = Array.isArray(coursesResponse) ? coursesResponse : [];
+          const assignments = assignmentsResponse?.assignments || [];
+
+          setDashboardData({
+            courses,
+            assignments
+          });
         } catch (error) {
           console.error('Failed to fetch dashboard data:', error);
-          toast.error('Failed to load courses');
+          toast.error('Failed to load courses and assignments');
         } finally {
           setLoading(false);
         }
@@ -92,28 +106,74 @@ const AssignmentsPage = () => {
               </div>
             </div>
           </div>
+          
+          {/* Stats Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Courses</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{teacherCourses.length}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                  <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Assignments</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {teacherCourses.reduce((sum, course) => sum + (course.assignmentCount || 0), 0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                  <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Enrolled</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {teacherCourses.reduce((sum, course) => sum + (course.enrollmentCount || 0), 0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           {teacherCourses.length > 0 ? (
             <div>
-              <div className="mb-4 p-4 bg-blue-100 text-blue-900 rounded-lg border border-blue-300">
-                <strong>DEBUG:</strong> Found {teacherCourses.length} courses
-                <div>Courses: {JSON.stringify(teacherCourses)}</div>
-              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {teacherCourses.map(course => (
                 <button
                   key={course.id}
                   onClick={() => navigate(`/courses/${course.id}/assignments`)}
-                  className="group relative bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-850 rounded-xl shadow-sm border-2 border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 p-6 text-left overflow-hidden"
+                  className="group relative bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-850 rounded-xl shadow-sm border-2 border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 p-6 text-left overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                   <div className="relative">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg mb-3 shadow-md group-hover:shadow-lg transition-shadow">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg mb-3 shadow-md group-hover:shadow-lg transition-shadow">
                       <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
                       </svg>
                       <span className="text-sm font-bold text-white">{course.code}</span>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300">
                       {course.title}
                     </h3>
                     {course.description && (
@@ -122,7 +182,7 @@ const AssignmentsPage = () => {
                       </p>
                     )}
                     <div className="flex items-center gap-2 mb-4">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center shadow-md">
+                      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-md">
                         <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                         </svg>
@@ -136,20 +196,18 @@ const AssignmentsPage = () => {
                     </div>
                     <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
                       <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-                          <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
+                          <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Assignments</p>
-                          <p className="text-lg font-bold text-gray-900 dark:text-white">
-                            Manage
-                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Pending</p>
+                          <p className="text-lg font-bold text-gray-900 dark:text-white">{course.assignmentCount || 0} assignments</p>
                         </div>
                       </div>
-                      <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40 transition-colors">
-                        <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center group-hover:bg-purple-200 dark:group-hover:bg-purple-800/40 transition-colors">
+                        <svg className="w-4 h-4 text-purple-600 dark:text-purple-400 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                         </svg>
                       </div>

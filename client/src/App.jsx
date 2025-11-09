@@ -67,7 +67,7 @@ function App() {
           <Route path="courses/:courseId/materials" element={<MaterialsPage />} />
           <Route path="materials" element={<AllMaterialsPage />} />
           <Route path="materials/:courseId" element={<MaterialsPage />} />
-          <Route path="assignments" element={<AllAssignmentsPage />} />
+          <Route path="assignments" element={<AssignmentsPage />} />
           <Route path="courses/:courseId/assignments" element={<AssignmentsPage />} />
           <Route path="courses/:courseId/assignments/create" element={<CreateAssignmentPage />} />
           <Route path="courses/:courseId/assignments/upload" element={<AssignmentUpload />} />

@@ -1,5 +1,5 @@
-const { Course, User, Enrollment } = require('../models');
-const { Op } = require('sequelize');
+const { Course, User, Enrollment, Assignment } = require('../models');
+const { Op, fn, col } = require('sequelize');
 
 // Create a new course
 const createCourse = async (req, res) => {
@@ -283,8 +283,29 @@ const getMyCourses = async (req, res) => {
             model: User,
             as: 'teacher',
             attributes: ['id', 'firstName', 'lastName', 'email']
+          },
+          {
+            model: Assignment,
+            attributes: []
+          },
+          {
+            model: Enrollment,
+            attributes: []
           }
         ],
+        attributes: {
+          include: [
+            [
+              fn('COUNT', col('Assignments.id')),
+              'assignmentCount'
+            ],
+            [
+              fn('COUNT', col('Enrollments.id')),
+              'enrollmentCount'
+            ]
+          ]
+        },
+        group: ['Course.id', 'teacher.id', 'teacher.firstName', 'teacher.lastName', 'teacher.email'],
         order: [['createdAt', 'DESC']]
       });
     } else if (req.user.role === 'student') {

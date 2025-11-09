@@ -266,7 +266,7 @@ const AllAssignmentsPage = () => {
                                         Submissions
                                       </Link>
                                     )}
-                                    {isAdmin && (
+                                    {(isAdmin || isTeacher) && (
                                       <button
                                         onClick={() => handleDeleteAssignment(assignment.id, assignment.title)}
                                         disabled={deleting === assignment.id}
@@ -316,6 +316,17 @@ const AllAssignmentsPage = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog({ isOpen: false, assignmentId: null, assignmentTitle: '' })}
+        onConfirm={confirmDelete}
+        title="Delete Assignment"
+        message={`Are you sure you want to delete "${confirmDialog.assignmentTitle}"? This action cannot be undone and will also delete all student submissions.`}
+        confirmText="Delete"
+        confirmButtonClass="bg-red-600 hover:bg-red-700 text-white"
+      />
     </div>
   );
 };

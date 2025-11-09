@@ -14,6 +14,15 @@ const {
 router.post('/register', registerValidation, validate, authController.register);
 router.post('/login', loginValidation, validate, authController.login);
 
+// OTP routes for login
+router.post('/check-role', authController.checkRole);
+router.post('/send-otp', authController.sendOTPCode);
+router.post('/verify-otp', authController.verifyOTPCode);
+
+// OTP routes for registration
+router.post('/register/send-otp', authController.sendRegistrationOTP);
+router.post('/register/verify-otp', authController.registerWithOTP);
+
 // Teacher registration via invitation
 router.get('/register/teacher/:token', adminController.getInvitationByToken);
 router.post('/register/teacher/:token', adminController.registerTeacher);

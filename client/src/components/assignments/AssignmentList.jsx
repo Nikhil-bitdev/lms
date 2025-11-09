@@ -4,8 +4,11 @@ import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { assignmentService } from '../../services/assignmentService';
 import LoadingSpinner from '../LoadingSpinner';
+import ConfirmDialog from '../ConfirmDialog';
 
-const AssignmentCard = ({ assignment, courseId, userRole }) => {
+const AssignmentCard = ({ assignment, courseId, userRole, onDelete }) => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const dueDate = new Date(assignment.dueDate);
   const now = new Date();
   const isOverdue = dueDate < now;
@@ -13,7 +16,28 @@ const AssignmentCard = ({ assignment, courseId, userRole }) => {
   const daysUntilDue = Math.ceil(timeUntilDue / (1000 * 60 * 60 * 24));
   
   const isAdmin = userRole === 'admin';
-  const isTeacher = userRole === 'teacher';
+  const isTeacher = userRole === 'teacher' || userRole === 'instructor';
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    try {
+      await assignmentService.deleteAssignment(assignment.id);
+      toast.success('Assignment deleted successfully');
+      setShowDeleteConfirm(false);
+      if (onDelete) {
+        onDelete(assignment.id);
+      }
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete assignment');
+    } finally {
+      setDeleting(false);
+    }
+  };
   
   // Determine status based on submission and due date
   const getStatus = () => {
@@ -154,18 +178,42 @@ const AssignmentCard = ({ assignment, courseId, userRole }) => {
           </Link>
           
           {(isTeacher || isAdmin) && (
-            <Link
-              to={`/assignments/${assignment.id}#submissions`}
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-95 transition-all duration-300"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              View Submissions ({assignment.submissionCount || 0})
-            </Link>
+            <>
+              <Link
+                to={`/assignments/${assignment.id}#submissions`}
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-95 transition-all duration-300"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                View Submissions ({assignment.submissionCount || 0})
+              </Link>
+              
+              <button
+                onClick={handleDeleteClick}
+                disabled={deleting}
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed rounded-lg shadow-md hover:shadow-xl transform hover:scale-[1.02] active:scale-95 transition-all duration-300"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </>
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Assignment"
+        message={`Are you sure you want to delete "${assignment.title}"? This action cannot be undone and will also delete all student submissions.`}
+        confirmText="Delete"
+        confirmButtonClass="bg-red-600 hover:bg-red-700 text-white"
+      />
     </div>
   );
 };
@@ -177,24 +225,28 @@ const AssignmentList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchAssignments = async () => {
-      try {
-        const data = await assignmentService.getCourseAssignments(courseId);
-        setAssignments(data.assignments || []);
-      } catch (err) {
-        console.error('Error fetching assignments:', err);
-        setError('Failed to fetch assignments. Please try again later.');
-        toast.error('Failed to load assignments');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchAssignments = async () => {
+    try {
+      const data = await assignmentService.getCourseAssignments(courseId);
+      setAssignments(data.assignments || []);
+    } catch (err) {
+      console.error('Error fetching assignments:', err);
+      setError('Failed to fetch assignments. Please try again later.');
+      toast.error('Failed to load assignments');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (courseId) {
       fetchAssignments();
     }
   }, [courseId]);
+
+  const handleDeleteAssignment = (deletedId) => {
+    setAssignments(prev => prev.filter(a => a.id !== deletedId));
+  };
 
   if (loading) return <LoadingSpinner />;
 
@@ -299,6 +351,7 @@ const AssignmentList = () => {
               assignment={assignment}
               courseId={courseId}
               userRole={user?.role}
+              onDelete={handleDeleteAssignment}
             />
           ))}
         </div>

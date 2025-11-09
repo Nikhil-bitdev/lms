@@ -16,13 +16,13 @@ export const courseService = {
   // Get single course by ID
   getCourseById: async (id) => {
     const response = await api.get(`/courses/${id}`);
-    return response.data;
+    return response.data.course || response.data;
   },
 
   // Alias for getCourseById for compatibility
   getCourse: async (id) => {
     const response = await api.get(`/courses/${id}`);
-    return response.data;
+    return response.data.course || response.data;
   },
 
   // Create new course
