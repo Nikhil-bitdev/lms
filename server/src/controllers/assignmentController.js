@@ -361,7 +361,12 @@ const getUserAssignments = async (req, res) => {
           where: { courseId: enrolledCourseIds },
           include: [{
             model: Course,
-            attributes: ['id', 'title', 'code']
+            attributes: ['id', 'title', 'code', 'teacherId'],
+            include: [{
+              model: User,
+              as: 'teacher',
+              attributes: ['id', 'firstName', 'lastName', 'email']
+            }]
           }, {
             model: Submission,
             where: { userId },
