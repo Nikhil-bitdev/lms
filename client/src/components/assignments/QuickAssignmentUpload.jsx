@@ -15,6 +15,14 @@ const QuickAssignmentUpload = ({ isOpen, onClose, onSuccess }) => {
     dueDate: '',
     totalPoints: 100
   });
+  
+  // New state for quick course creation
+  const [isQuickAddingCourse, setIsQuickAddingCourse] = useState(false);
+  const [quickCourseData, setQuickCourseData] = useState({
+    title: '',
+    code: ''
+  });
+  const [isCreatingCourse, setIsCreatingCourse] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -22,16 +30,58 @@ const QuickAssignmentUpload = ({ isOpen, onClose, onSuccess }) => {
     }
   }, [isOpen]);
 
-  const fetchMyCourses = async () => {
+  const fetchMyCourses = async (selectNewId = null) => {
     try {
       const response = await courseService.getMyCourses();
-      console.log('Fetched courses:', response);
-      // For teachers, getMyCourses already returns only their courses
-      // No need to filter - the backend does it
-      setCourses(Array.isArray(response) ? response : []);
+      const courseList = Array.isArray(response) ? response : [];
+      setCourses(courseList);
+      
+      // If we just created a course, select it
+      if (selectNewId) {
+        setSelectedCourse(selectNewId);
+      } else if (courseList.length > 0 && !selectedCourse) {
+        // Don't auto-select during assignments, let the user choose
+      }
     } catch (error) {
       console.error('Error fetching courses:', error);
       toast.error('Failed to load your courses');
+    }
+  };
+
+  const handleQuickCourseSubmit = async (e) => {
+    e.preventDefault();
+    if (!quickCourseData.title || !quickCourseData.code) {
+      toast.error('Please provide both title and code');
+      return;
+    }
+
+    setIsCreatingCourse(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const sixMonthsLater = new Date();
+      sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
+      const endDate = sixMonthsLater.toISOString().split('T')[0];
+
+      const newCourse = await courseService.createCourse({
+        title: quickCourseData.title,
+        code: quickCourseData.code.toUpperCase().replace(/\s+/g, '-'),
+        description: `Quick created course for assignment: ${quickCourseData.title}`,
+        startDate: today,
+        endDate: endDate,
+        enrollmentLimit: 50
+      });
+
+      toast.success('Course created successfully!');
+      setIsQuickAddingCourse(false);
+      setQuickCourseData({ title: '', code: '' });
+      
+      // Refresh list and select the new course
+      await fetchMyCourses(newCourse.id || newCourse.course?.id);
+    } catch (err) {
+      console.error('Quick course creation error:', err);
+      toast.error(err.response?.data?.message || 'Failed to create course');
+    } finally {
+      setIsCreatingCourse(false);
     }
   };
 
@@ -124,22 +174,66 @@ const QuickAssignmentUpload = ({ isOpen, onClose, onSuccess }) => {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Course Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Select Course *
-              </label>
-              <select
-                value={selectedCourse}
-                onChange={(e) => setSelectedCourse(e.target.value)}
-                required
-                className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              >
-                <option value="">Choose a course...</option>
-                {courses.map(course => (
-                  <option key={course.id} value={course.id}>
-                    {course.code} - {course.title}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Select Course *
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsQuickAddingCourse(!isQuickAddingCourse)}
+                  className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  {isQuickAddingCourse ? 'Cancel' : '+ Create New Course'}
+                </button>
+              </div>
+
+              {isQuickAddingCourse ? (
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      placeholder="Course Title"
+                      value={quickCourseData.title}
+                      onChange={(e) => setQuickCourseData({ ...quickCourseData, title: e.target.value })}
+                      className="text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Code (e.g. CS101)"
+                      value={quickCourseData.code}
+                      onChange={(e) => setQuickCourseData({ ...quickCourseData, code: e.target.value })}
+                      className="text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleQuickCourseSubmit}
+                    disabled={isCreatingCourse}
+                    className="w-full py-1 text-xs font-bold text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {isCreatingCourse ? 'Creating...' : 'Create & Select Course'}
+                  </button>
+                </div>
+              ) : (
+                <select
+                  value={selectedCourse}
+                  onChange={(e) => setSelectedCourse(e.target.value)}
+                  required
+                  className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                >
+                  <option value="">Choose a course...</option>
+                  {courses.map(course => (
+                    <option key={course.id} value={course.id}>
+                      {course.code} - {course.title}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {courses.length === 0 && !isQuickAddingCourse && (
+                <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
+                  You don't have any courses yet. Click "+ Create New Course" to add one.
+                </p>
+              )}
             </div>
 
             {/* Title */}

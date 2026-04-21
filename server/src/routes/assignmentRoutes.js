@@ -47,6 +47,15 @@ router.get(
   assignmentController.getAssignmentSubmissions
 );
 
+// Get assignment submission report (teachers and admins only)
+router.get(
+  '/:assignmentId/report',
+  auth,
+  authorize('teacher', 'instructor', 'admin'),
+  assignmentController.generateAssignmentReport
+);
+
+
 // Submit assignment (students only)
 router.post(
   '/:assignmentId/submit',

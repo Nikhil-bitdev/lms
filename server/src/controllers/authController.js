@@ -143,11 +143,12 @@ const sendRegistrationOTP = async (req, res) => {
     }
 
     // Send OTP
-    await sendOTP(email);
+    const otpResult = await sendOTP(email);
 
     res.json({
       message: 'OTP sent to your email',
-      email
+      email,
+      devOtp: otpResult.devOtp
     });
   } catch (error) {
     console.error('Send registration OTP error:', error);
@@ -256,11 +257,12 @@ const sendOTPCode = async (req, res) => {
     }
 
     // Send OTP
-    await sendOTP(email);
+    const otpResult = await sendOTP(email);
 
     res.json({
       message: 'OTP sent to your email',
-      email
+      email,
+      devOtp: otpResult.devOtp
     });
   } catch (error) {
     console.error('Send OTP error:', error);

@@ -13,6 +13,7 @@ export default function LoginPage() {
     password: '',
     otp: ''
   });
+  const [devOtp, setDevOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -48,6 +49,12 @@ export default function LoginPage() {
         email: formData.email,
         password: formData.password
       });
+
+      if (response.data.devOtp) {
+        setDevOtp(response.data.devOtp);
+      } else {
+        setDevOtp('');
+      }
 
       setStep('otp');
       setError('');
@@ -88,10 +95,15 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await api.post('/auth/send-otp', {
+      const response = await api.post('/auth/send-otp', {
         email: formData.email,
         password: formData.password
       });
+      if (response.data.devOtp) {
+        setDevOtp(response.data.devOtp);
+      } else {
+        setDevOtp('');
+      }
       setError('');
       alert('OTP resent successfully!');
     } catch (err) {
@@ -243,6 +255,12 @@ export default function LoginPage() {
             <p className="text-sm text-blue-300">
               <strong>📧 Check your email!</strong> We've sent a 6-digit verification code that expires in 5 minutes.
             </p>
+            {devOtp && (
+              <div className="mt-4 p-3 bg-indigo-900/50 border border-indigo-500/50 rounded-lg">
+                <p className="text-sm text-indigo-300 font-medium">🛠️ Developer Mode Active</p>
+                <p className="text-sm text-indigo-200 mt-1">Email is not configured. Use this OTP to login: <br/><strong className="text-white text-xl tracking-widest">{devOtp}</strong></p>
+              </div>
+            )}
           </div>
         )}
       </div>

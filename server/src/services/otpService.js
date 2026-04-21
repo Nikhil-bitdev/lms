@@ -12,6 +12,9 @@ const transporter = nodemailer.createTransport({
 
 // Generate a 6-digit OTP
 const generateOTP = () => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    return '123456';
+  }
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
@@ -57,7 +60,16 @@ const sendOTP = async (email) => {
       `
     };
     
-    await transporter.sendMail(mailOptions);
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log(`🔔 DEV MODE: Login Verification Code`);
+      console.log(`📧 Email: ${email}`);
+      console.log(`🔑 OTP: ${otpCode}`);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      return { success: true, message: 'OTP sent successfully', devOtp: otpCode };
+    } else {
+      await transporter.sendMail(mailOptions);
+    }
     
     return { success: true, message: 'OTP sent successfully' };
   } catch (error) {

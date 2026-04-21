@@ -15,6 +15,7 @@ export default function RegisterPage() {
     confirmPassword: '',
     otp: ''
   });
+  const [devOtp, setDevOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -46,9 +47,15 @@ export default function RegisterPage() {
     }
 
     try {
-      await api.post('/auth/register/send-otp', {
+      const response = await api.post('/auth/register/send-otp', {
         email: formData.email
       });
+
+      if (response.data.devOtp) {
+        setDevOtp(response.data.devOtp);
+      } else {
+        setDevOtp('');
+      }
 
       setStep('otp');
       setError('');
@@ -92,9 +99,15 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      await api.post('/auth/register/send-otp', {
+      const response = await api.post('/auth/register/send-otp', {
         email: formData.email
       });
+      if (response.data.devOtp) {
+        setDevOtp(response.data.devOtp);
+      } else {
+        setDevOtp('');
+      }
+
       setError('');
       toast.success('OTP resent successfully!');
     } catch (err) {
@@ -293,6 +306,12 @@ export default function RegisterPage() {
             <p className="text-sm text-blue-300">
               <strong>📧 Check your email!</strong> We've sent a 6-digit verification code that expires in 5 minutes.
             </p>
+            {devOtp && (
+              <div className="mt-4 p-3 bg-indigo-900/50 border border-indigo-500/50 rounded-lg">
+                <p className="text-sm text-indigo-300 font-medium">🛠️ Developer Mode Active</p>
+                <p className="text-sm text-indigo-200 mt-1">Email is not configured. Use this OTP to register: <br/><strong className="text-white text-xl tracking-widest">{devOtp}</strong></p>
+              </div>
+            )}
           </div>
         )}
       </div>

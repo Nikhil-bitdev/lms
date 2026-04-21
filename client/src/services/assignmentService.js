@@ -106,6 +106,14 @@ export const assignmentService = {
   deleteAssignment: async (assignmentId) => {
     const response = await api.delete(`/assignments/${assignmentId}`);
     return response.data;
+  },
+
+  // Download assignment report (teacher/admin only)
+  downloadAssignmentReport: async (assignmentId) => {
+    const response = await api.get(`/assignments/${assignmentId}/report`, {
+      responseType: 'blob'
+    });
+    return response.data;
   }
 };
 

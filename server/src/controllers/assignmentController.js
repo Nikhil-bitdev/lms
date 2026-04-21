@@ -473,6 +473,138 @@ const deleteAssignment = async (req, res) => {
   }
 };
 
+// Generate Assignment Report
+const generateAssignmentReport = async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+    const ExcelJS = require('exceljs');
+
+    const assignment = await Assignment.findByPk(assignmentId, {
+      include: [{ model: Course }]
+    });
+
+    if (!assignment) {
+      console.log(`[Report] Assignment ${assignmentId} not found`);
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    console.log(`[Report] Generating report for assignment: ${assignment.title}`);
+    console.log(`[Report] User: ${req.user.id}, Role: ${req.user.role}`);
+    console.log(`[Report] Course Teacher: ${assignment.Course?.teacherId}`);
+
+    // Check authorization
+    const isAdmin = req.user.role === 'admin';
+    const isTeacher = req.user.role === 'teacher' || req.user.role === 'instructor';
+    if (!isAdmin && !(isTeacher && assignment.Course.teacherId == req.user.id)) {
+      return res.status(403).json({ message: 'Not authorized to generate report' });
+    }
+
+    // Get all enrollments for this course
+    const { Enrollment, User } = require('../models');
+    const enrollments = await Enrollment.findAll({
+      where: { courseId: assignment.courseId, status: 'active' },
+      include: [{
+        model: User,
+        attributes: ['id', 'firstName', 'lastName', 'email']
+      }]
+    });
+
+    // Get all submissions for this assignment
+    const submissions = await Submission.findAll({
+      where: { assignmentId },
+      include: [{
+        model: User,
+        attributes: ['id']
+      }]
+    });
+
+    // Map submissions by user ID
+    const submissionMap = {};
+    for (const sub of submissions) {
+      submissionMap[sub.userId] = sub;
+    }
+
+    // Create a new workbook and worksheet
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = req.user.firstName + ' ' + req.user.lastName;
+    
+    // Worksheet 1: Summary
+    const summarySheet = workbook.addWorksheet('Summary');
+    summarySheet.columns = [
+      { header: 'Metric', key: 'metric', width: 30 },
+      { header: 'Value', key: 'value', width: 15 }
+    ];
+
+    const totalStudents = enrollments.length;
+    const submittedCount = submissions.length;
+    const notSubmittedCount = totalStudents - submittedCount;
+    const dueDate = new Date(assignment.dueDate);
+
+    summarySheet.addRow({ metric: 'Assignment Title', value: assignment.title });
+    summarySheet.addRow({ metric: 'Due Date', value: dueDate.toLocaleString() });
+    summarySheet.addRow({ metric: 'Total Points', value: assignment.totalPoints });
+    summarySheet.addRow({ metric: 'Total Enrolled Students', value: totalStudents });
+    summarySheet.addRow({ metric: 'Students Submitted', value: submittedCount });
+    summarySheet.addRow({ metric: 'Students Not Submitted', value: notSubmittedCount });
+
+    // Style the summary
+    summarySheet.getRow(1).font = { bold: true };
+
+    // Worksheet 2: Student Details
+    const detailsSheet = workbook.addWorksheet('Student Details');
+    detailsSheet.columns = [
+      { header: 'Student ID', key: 'studentId', width: 15 },
+      { header: 'First Name', key: 'firstName', width: 20 },
+      { header: 'Last Name', key: 'lastName', width: 20 },
+      { header: 'Email', key: 'email', width: 30 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Grade', key: 'grade', width: 10 },
+      { header: 'Submitted At', key: 'submittedAt', width: 25 }
+    ];
+
+    for (const enrollment of enrollments) {
+      const student = enrollment.User;
+      const submission = submissionMap[student.id];
+      
+      let status = 'Not Submitted';
+      let grade = 'N/A';
+      let submittedAt = 'N/A';
+
+      if (submission) {
+        status = submission.status.charAt(0).toUpperCase() + submission.status.slice(1);
+        grade = submission.grade !== null ? submission.grade : 'Not Graded';
+        submittedAt = new Date(submission.submittedAt).toLocaleString();
+      }
+
+      detailsSheet.addRow({
+        studentId: student.id,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        email: student.email,
+        status,
+        grade,
+        submittedAt
+      });
+    }
+
+    // Style the details headers
+    detailsSheet.getRow(1).font = { bold: true };
+
+    // Set response headers to trigger download
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=Assignment_Report_${assignmentId}.xlsx`);
+
+    // Write to response
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('[Report] Generate assignment report error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: `Error generating report: ${error.message}` });
+    }
+  }
+};
+
 module.exports = {
   createAssignment,
   getCourseAssignments,
@@ -482,5 +614,6 @@ module.exports = {
   getAssignmentSubmissions,
   getUserAssignments,
   downloadAttachment,
-  deleteAssignment
+  deleteAssignment,
+  generateAssignmentReport
 };

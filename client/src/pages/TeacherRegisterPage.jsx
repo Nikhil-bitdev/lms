@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const TeacherRegisterPage = () => {
@@ -19,8 +19,7 @@ const TeacherRegisterPage = () => {
 
   const fetchInvitation = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const response = await axios.get(`${apiUrl}/auth/register/teacher/${token}`);
+      const response = await api.get(`/auth/register/teacher/${token}`);
       setInvitation(response.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid or expired invitation');
@@ -44,8 +43,7 @@ const TeacherRegisterPage = () => {
     }
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      await axios.post(`${apiUrl}/auth/register/teacher/${token}`, { password });
+      await api.post(`/auth/register/teacher/${token}`, { password });
       setSuccess(true);
       setTimeout(() => {
         navigate('/login');

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import api from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -24,6 +25,12 @@ const AdminDashboardPage = () => {
   const [invitations, setInvitations] = useState([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showCourseModal, setShowCourseModal] = useState(false);
+  const [invitationLinkModal, setInvitationLinkModal] = useState({
+    isOpen: false,
+    link: '',
+    email: '',
+    emailSent: false
+  });
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -80,8 +87,17 @@ const AdminDashboardPage = () => {
       setFormData({ email: '', firstName: '', lastName: '' });
       fetchData();
       
-      // Show invitation link
-      alert(`Invitation Link:\n${response.data.invitationLink}\n\nShare this link with the teacher.`);
+      // Show invitation link 
+      // Safely extract token and form link using actual frontend port
+      const token = response.data.invitationLink.split('/').pop();
+      const dynamicLink = `${window.location.origin}/register/teacher/${token}`;
+      
+      setInvitationLinkModal({
+        isOpen: true,
+        link: dynamicLink,
+        email: formData.email,
+        emailSent: response.data.emailSent
+      });
       
       setTimeout(() => setSuccess(null), 5000);
     } catch (err) {
@@ -510,9 +526,21 @@ const AdminDashboardPage = () => {
                   ))}
                 </select>
                 {activeTeachers.length === 0 && (
-                  <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">
-                    No active teachers available. Please invite teachers first.
-                  </p>
+                  <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-lg">
+                    <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                      No active teachers available. Courses must be assigned to an active teacher.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCourseModal(false);
+                        setShowInviteModal(true);
+                      }}
+                      className="mt-2 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Invite a Teacher now →
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -613,6 +641,48 @@ const AdminDashboardPage = () => {
         cancelText="Cancel"
         type="danger"
       />
+
+      {/* Invitation Link Result Modal */}
+      {invitationLinkModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-lg w-full text-center">
+            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Teacher Invited!</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {invitationLinkModal.emailSent 
+                ? `An email has been sent to ${invitationLinkModal.email}. You can also copy the link manually below.`
+                : `We created the invitation for ${invitationLinkModal.email}, but email delivery is not configured. Please copy the link below and send it to them manually.`
+              }
+            </p>
+            <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg flex flex-col items-start gap-4 mb-6">
+              <a 
+                href={invitationLinkModal.link} 
+                target="_blank" 
+                rel="noreferrer"
+                className="text-blue-600 dark:text-blue-400 font-medium text-sm break-all text-left hover:underline"
+              >
+                {invitationLinkModal.link}
+              </a>
+            </div>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(invitationLinkModal.link);
+                  toast.success('Link copied to clipboard!');
+                }}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Copy Link
+              </button>
+              <button
+                onClick={() => setInvitationLinkModal({ isOpen: false, link: '', email: '', emailSent: false })}
+                className="px-6 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
