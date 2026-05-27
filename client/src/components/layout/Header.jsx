@@ -49,27 +49,19 @@ const Header = () => {
             <span className="text-xl">{isDarkMode ? '🌞' : '🌙'}</span>
           </button>
 
-          {/* Notifications */}
-          <button 
-            className="relative p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-all duration-200 hover:scale-110"
-            title="Notifications"
-          >
-            <span className="text-xl">🔔</span>
-            {/* Notification badge */}
-            <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-          </button>
+          {/* Notifications removed */}
 
           {/* Profile dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black dark:bg-gray-900 hover:bg-gray-900 dark:hover:bg-gray-800 transition-all duration-200 shadow-md hover:shadow-lg"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/15 dark:bg-white/10 backdrop-blur-md border border-white/20 dark:border-white/10 hover:bg-white/20 dark:hover:bg-white/15 transition-all duration-200 shadow-lg hover:shadow-xl"
               title="Profile Menu"
             >
               <span className="text-xl">👤</span>
-              <span className="text-white dark:text-gray-200 font-semibold text-sm tracking-tight hidden sm:inline">{user?.name}</span>
+              <span className="text-gray-900 dark:text-white font-semibold text-sm tracking-tight hidden sm:inline">{user?.name}</span>
               <svg 
-                className={`w-4 h-4 text-white dark:text-gray-200 transition-transform duration-200 hidden sm:block ${isDropdownOpen ? 'rotate-180' : ''}`} 
+                className={`w-4 h-4 text-gray-900 dark:text-white transition-transform duration-200 hidden sm:block ${isDropdownOpen ? 'rotate-180' : ''}`} 
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"

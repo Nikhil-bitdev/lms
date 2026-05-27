@@ -38,6 +38,7 @@ const AssignmentDetails = () => {
   const [showGradeModal, setShowGradeModal] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [gradeInput, setGradeInput] = useState('');
+  const [feedbackInput, setFeedbackInput] = useState('');
 
   const isTeacher = user?.role === 'teacher' || user?.role === 'instructor';
   const isAdmin = user?.role === 'admin';
@@ -193,6 +194,7 @@ const AssignmentDetails = () => {
   const openGradeModal = (submission) => {
     setSelectedSubmission(submission);
     setGradeInput(submission.grade !== null ? submission.grade.toString() : '');
+    setFeedbackInput(submission.feedback || '');
     setShowGradeModal(true);
   };
 
@@ -213,12 +215,16 @@ const AssignmentDetails = () => {
       }
 
       await assignmentService.gradeSubmission(selectedSubmission.id, {
-        grade
+        grade,
+        feedback: feedbackInput
       });
 
       // Refresh submissions
       const submissionsData = await assignmentService.getAssignmentSubmissions(assignmentId);
       setSubmissions(submissionsData.submissions || []);
+      // Refresh assignment details as well (to update student view)
+      const assignmentData = await assignmentService.getAssignment(assignmentId);
+      setAssignment(assignmentData.assignment);
       
       toast.success('Grade submitted successfully!');
       closeGradeModal();
@@ -931,6 +937,20 @@ const AssignmentDetails = () => {
                       </span>
                     </div>
                   )}
+                </div>
+
+                {/* Feedback Input */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                    Feedback (optional)
+                  </label>
+                  <textarea
+                    rows="3"
+                    value={feedbackInput}
+                    onChange={(e) => setFeedbackInput(e.target.value)}
+                    className="w-full px-4 py-3 text-sm border-2 border-gray-300 dark:border-gray-600 rounded-xl focus:ring-4 focus:ring-purple-500/30 focus:border-purple-500 dark:bg-gray-700 dark:text-white transition-all"
+                    placeholder="Enter feedback for the student (optional)"
+                  />
                 </div>
 
                 {/* Submission Preview */}

@@ -11,6 +11,7 @@ import MaterialsPage from './pages/MaterialsPage';
 import AllMaterialsPage from './pages/AllMaterialsPage';
 import AssignmentsPage from './pages/AssignmentsPage';
 import AllAssignmentsPage from './pages/AllAssignmentsPage';
+import TeacherAssignmentsPage from './pages/TeacherAssignmentsPage';
 import CreateAssignmentPage from './pages/CreateAssignmentPage';
 import AssignmentDetailsPage from './pages/AssignmentDetailsPage';
 import LoginPage from './pages/LoginPage';
@@ -23,6 +24,7 @@ import SubjectsPage from './pages/SubjectsPage';
 import SubjectDetailsPage from './pages/SubjectDetailsPage';
 import AdminSubjectsPage from './pages/AdminSubjectsPage';
 import StudentAssignmentsPage from './pages/StudentAssignmentsPage';
+import PendingAssignmentsPage from './pages/PendingAssignmentsPage';
 import StudentMaterialsPage from './pages/StudentMaterialsPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import AssignmentUpload from './components/courses/AssignmentUpload';
@@ -78,7 +80,8 @@ function App() {
           <Route path="materials" element={<AllMaterialsPage />} />
           <Route path="materials/upload" element={<UploadMaterialPage />} />
           <Route path="materials/:courseId" element={<MaterialsPage />} />
-          <Route path="assignments" element={<AssignmentsPage />} />
+          <Route path="assignments" element={<AllAssignmentsPage />} />
+          <Route path="teacher-assignments" element={<TeacherAssignmentsPage />} />
           <Route path="courses/:courseId/assignments" element={<AssignmentsPage />} />
           <Route path="courses/:courseId/assignments/create" element={<CreateAssignmentPage />} />
           <Route path="courses/:courseId/assignments/upload" element={<AssignmentUpload />} />
@@ -86,6 +89,7 @@ function App() {
           <Route path="subjects" element={<SubjectsPage />} />
           <Route path="subjects/:id" element={<SubjectDetailsPage />} />
           <Route path="subjects/assignments" element={<StudentAssignmentsPage />} />
+          <Route path="pending-assignments" element={<PendingAssignmentsPage />} />
           <Route path="subjects/materials" element={<StudentMaterialsPage />} />
           <Route path="admin/subjects" element={<AdminSubjectsPage />} />
           {/* Create course route removed per request */}

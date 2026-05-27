@@ -23,7 +23,6 @@ const getNavItems = (role) => {
 
     if (role === 'instructor' || role === 'teacher') {
     items.push(
-      { name: 'Assignments', path: '/assignments', icon: '📝' },
       { name: 'Upload Materials', path: '/materials/upload', icon: '📄' }
     );
   }
