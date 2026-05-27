@@ -1,12 +1,69 @@
 const crypto = require('crypto');
-const { User, TeacherInvitation, Course } = require('../models');
+const path = require('path');
+const fs = require('fs').promises;
+const { User, TeacherInvitation, Course, Assignment, SubjectAssignment, Subject } = require('../models');
 const { Op } = require('sequelize');
 const { sendTeacherInvitation } = require('../services/emailService');
+
+const uploadsDir = path.resolve(__dirname, '../../uploads');
+
+const detectMimeType = (filename) => {
+  const ext = path.extname(filename || '').toLowerCase();
+  const mapping = {
+    '.pdf': 'application/pdf',
+    '.doc': 'application/msword',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.ppt': 'application/vnd.ms-powerpoint',
+    '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    '.xls': 'application/vnd.ms-excel',
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.txt': 'text/plain',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.zip': 'application/zip'
+  };
+
+  return mapping[ext] || 'application/octet-stream';
+};
+
+const parseAttachments = (raw) => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+  return [];
+};
+
+const buildAttachmentPayload = (filename, originalName) => {
+  const absolutePath = path.join(uploadsDir, filename);
+  const displayName = originalName || filename;
+  const mimeType = detectMimeType(filename);
+
+  return {
+    fileName: filename,
+    filename,
+    originalName: displayName,
+    originalname: displayName,
+    filePath: absolutePath,
+    path: absolutePath,
+    fileSize: null,
+    fileSizeBytes: null,
+    mimeType,
+    mimetype: mimeType
+  };
+};
 
 // Invite a teacher
 const inviteTeacher = async (req, res) => {
   try {
-    const { email, firstName, lastName } = req.body;
+    const { email, firstName, lastName, courseField } = req.body;
     const adminId = req.user.id;
 
     // Check if email is already registered
@@ -36,6 +93,7 @@ const inviteTeacher = async (req, res) => {
       email,
       firstName,
       lastName,
+      courseField,
       invitationToken,
       invitedBy: adminId,
       expiresAt,
@@ -62,6 +120,7 @@ const inviteTeacher = async (req, res) => {
         email: invitation.email,
         firstName: invitation.firstName,
         lastName: invitation.lastName,
+        courseField: invitation.courseField,
         status: invitation.status,
         expiresAt: invitation.expiresAt
       },
@@ -200,6 +259,7 @@ const registerTeacher = async (req, res) => {
       email: invitation.email,
       password,
       role: 'teacher',
+      courseField: invitation.courseField,
       isActive: true
     });
 
@@ -232,7 +292,7 @@ const getInvitationByToken = async (req, res) => {
         status: 'pending',
         expiresAt: { [Op.gt]: new Date() }
       },
-      attributes: ['email', 'firstName', 'lastName', 'expiresAt']
+      attributes: ['email', 'firstName', 'lastName', 'courseField', 'expiresAt']
     });
 
     if (!invitation) {
@@ -249,11 +309,16 @@ const getInvitationByToken = async (req, res) => {
 // Create course and assign to teacher (admin only)
 const createCourse = async (req, res) => {
   try {
-    const { title, description, code, startDate, endDate, enrollmentLimit, teacherId } = req.body;
+    const { title, description, code, startDate, endDate, enrollmentLimit, teacherId, courseField } = req.body;
     
     // Validate that teacherId is provided
     if (!teacherId) {
       return res.status(400).json({ message: 'Teacher ID is required' });
+    }
+
+    // Validate that courseField is provided
+    if (!courseField) {
+      return res.status(400).json({ message: 'Course field (e.g., B.Tech, BCA) is required' });
     }
 
     // Verify teacher exists and is active
@@ -283,6 +348,7 @@ const createCourse = async (req, res) => {
       startDate,
       endDate,
       enrollmentLimit,
+      courseField,
       teacherId,
       isPublished: true // Auto-publish courses when created by admin
     });
@@ -347,6 +413,166 @@ const deleteTeacher = async (req, res) => {
   }
 };
 
+const getUploadFiles = async (req, res) => {
+  try {
+    const search = (req.query.search || '').trim().toLowerCase();
+    const entries = await fs.readdir(uploadsDir, { withFileTypes: true });
+
+    let files = await Promise.all(
+      entries
+        .filter((entry) => entry.isFile())
+        .map(async (entry) => {
+          const absolutePath = path.join(uploadsDir, entry.name);
+          const stats = await fs.stat(absolutePath);
+          return {
+            filename: entry.name,
+            size: stats.size,
+            updatedAt: stats.mtime,
+            mimeType: detectMimeType(entry.name)
+          };
+        })
+    );
+
+    if (search) {
+      files = files.filter((file) => file.filename.toLowerCase().includes(search));
+    }
+
+    files.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+    res.json({ files });
+  } catch (error) {
+    console.error('Get upload files error:', error);
+    res.status(500).json({ message: 'Error fetching upload files' });
+  }
+};
+
+const getAllAssignments = async (req, res) => {
+  try {
+    const type = (req.query.type || 'all').toLowerCase();
+    const response = { courseAssignments: [], subjectAssignments: [] };
+
+    if (type === 'all' || type === 'course') {
+      const courseAssignments = await Assignment.findAll({
+        include: [{
+          model: Course,
+          attributes: ['id', 'title', 'code']
+        }],
+        order: [['createdAt', 'DESC']],
+        limit: 500
+      });
+
+      response.courseAssignments = courseAssignments.map((assignment) => {
+        const json = assignment.toJSON();
+        const attachments = parseAttachments(json.attachments);
+        return {
+          id: json.id,
+          title: json.title,
+          dueDate: json.dueDate,
+          containerId: json.Course?.id || null,
+          containerName: json.Course?.title || 'Unknown course',
+          containerCode: json.Course?.code || '',
+          attachmentCount: attachments.length
+        };
+      });
+    }
+
+    if (type === 'all' || type === 'subject') {
+      const subjectAssignments = await SubjectAssignment.findAll({
+        include: [{
+          model: Subject,
+          attributes: ['id', 'name', 'code']
+        }],
+        order: [['createdAt', 'DESC']],
+        limit: 500
+      });
+
+      response.subjectAssignments = subjectAssignments.map((assignment) => {
+        const json = assignment.toJSON();
+        const attachments = parseAttachments(json.attachments);
+        return {
+          id: json.id,
+          title: json.title,
+          dueDate: json.dueDate,
+          containerId: json.Subject?.id || null,
+          containerName: json.Subject?.name || 'Unknown subject',
+          containerCode: json.Subject?.code || '',
+          attachmentCount: attachments.length
+        };
+      });
+    }
+
+    res.json(response);
+  } catch (error) {
+    console.error('Get all assignments error:', error);
+    res.status(500).json({ message: 'Error fetching assignments' });
+  }
+};
+
+const attachExistingFileToAssignment = async (req, res) => {
+  try {
+    const { type, assignmentId } = req.params;
+    const { filename, originalName } = req.body;
+
+    if (!filename || typeof filename !== 'string') {
+      return res.status(400).json({ message: 'filename is required' });
+    }
+
+    const safeFilename = path.basename(filename.trim());
+    if (!safeFilename || safeFilename !== filename.trim()) {
+      return res.status(400).json({ message: 'Invalid filename' });
+    }
+
+    const filePath = path.join(uploadsDir, safeFilename);
+    try {
+      await fs.access(filePath);
+    } catch (error) {
+      return res.status(404).json({ message: 'Selected file does not exist in uploads folder' });
+    }
+
+    const assignmentType = String(type).toLowerCase();
+    const isCourse = assignmentType === 'course';
+    const isSubject = assignmentType === 'subject';
+    if (!isCourse && !isSubject) {
+      return res.status(400).json({ message: 'type must be either "course" or "subject"' });
+    }
+
+    const Model = isCourse ? Assignment : SubjectAssignment;
+    const assignment = await Model.findByPk(assignmentId);
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    const existingAttachments = parseAttachments(assignment.attachments);
+    const nextAttachment = buildAttachmentPayload(safeFilename, originalName);
+
+    const filteredAttachments = existingAttachments.filter((attachment) => {
+      if (!attachment) return false;
+      if (typeof attachment === 'string') return path.basename(attachment) !== safeFilename;
+      return ![
+        attachment.fileName,
+        attachment.filename,
+        attachment.originalName,
+        attachment.path,
+        attachment.filePath
+      ].some((value) => typeof value === 'string' && path.basename(value) === safeFilename);
+    });
+
+    filteredAttachments.push(nextAttachment);
+
+    await assignment.update({ attachments: filteredAttachments });
+
+    res.json({
+      message: 'File attached successfully',
+      assignmentId: assignment.id,
+      type: assignmentType,
+      attachments: filteredAttachments
+    });
+  } catch (error) {
+    console.error('Attach existing file error:', error);
+    res.status(500).json({ message: 'Error attaching file to assignment' });
+  }
+};
+
 module.exports = {
   inviteTeacher,
   getInvitations,
@@ -356,5 +582,8 @@ module.exports = {
   registerTeacher,
   getInvitationByToken,
   createCourse,
-  deleteTeacher
+  deleteTeacher,
+  getUploadFiles,
+  getAllAssignments,
+  attachExistingFileToAssignment
 };

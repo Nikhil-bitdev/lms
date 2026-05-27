@@ -6,6 +6,21 @@ import { assignmentService } from '../../services/assignmentService';
 import LoadingSpinner from '../LoadingSpinner';
 import ConfirmDialog from '../ConfirmDialog';
 
+const normalizeAttachments = (attachments) => {
+  if (Array.isArray(attachments)) return attachments;
+
+  if (typeof attachments === 'string') {
+    try {
+      const parsed = JSON.parse(attachments);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+};
+
 const AssignmentCard = ({ assignment, courseId, userRole, onDelete }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -20,6 +35,19 @@ const AssignmentCard = ({ assignment, courseId, userRole, onDelete }) => {
 
   const handleDeleteClick = () => {
     setShowDeleteConfirm(true);
+  };
+
+  const handleExportReport = async () => {
+    try {
+      await assignmentService.downloadSubmissionReport(
+        assignment.id,
+        `${assignment.title || 'assignment'}-submissions.xlsx`
+      );
+      toast.success('Excel report downloaded');
+    } catch (error) {
+      console.error('Error exporting submission report:', error);
+      toast.error('Failed to export submission report');
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -62,6 +90,43 @@ const AssignmentCard = ({ assignment, courseId, userRole, onDelete }) => {
     if (daysUntilDue === 1) return 'Due tomorrow';
     return `${daysUntilDue} days remaining`;
   };
+
+  const downloadAttachment = async (attachment, index) => {
+    try {
+      const fileName = typeof attachment === 'string'
+        ? attachment
+        : (attachment.originalName || attachment.filename || attachment.fileName || 'download');
+
+      const downloadUrl = assignmentService.downloadAttachmentByIndexUrl(assignment.id, index);
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(downloadUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading attachment:', error);
+      toast.error('Failed to download attachment');
+    }
+  };
+
+  const attachmentList = normalizeAttachments(assignment.attachments);
 
   return (
     <div className="group relative bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-850 rounded-xl shadow-sm border-2 border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 p-6 overflow-hidden">
@@ -163,6 +228,32 @@ const AssignmentCard = ({ assignment, courseId, userRole, onDelete }) => {
         </div>
       </div>
 
+      {attachmentList.length > 0 && (
+        <div className="relative mb-4">
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Attached Files</p>
+          <div className="flex flex-wrap gap-2">
+            {attachmentList.map((attachment, index) => {
+              const fileName = typeof attachment === 'string'
+                ? attachment
+                : (attachment.originalName || attachment.filename || attachment.fileName || `attachment-${index + 1}`);
+
+              return (
+                <button
+                  key={index}
+                  onClick={() => downloadAttachment(attachment, index)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span className="text-sm font-medium truncate max-w-[220px]">{fileName}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="relative flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
         <div className="flex flex-wrap gap-2">
@@ -176,6 +267,18 @@ const AssignmentCard = ({ assignment, courseId, userRole, onDelete }) => {
             </svg>
             View Details
           </Link>
+
+          {(isTeacher || isAdmin) && (
+            <button
+              onClick={handleExportReport}
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-emerald-700 dark:text-emerald-200 bg-emerald-100 dark:bg-emerald-900/40 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 rounded-lg shadow-sm hover:shadow-md transform hover:scale-[1.02] active:scale-95 transition-all duration-300"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export Excel
+            </button>
+          )}
           
           {(isTeacher || isAdmin) && (
             <>

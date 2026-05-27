@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import api from '../services/api';
 
+const COURSE_FIELDS = ['B.Tech', 'BCA', 'MBA', 'MSc', 'BTech CSE', 'BTech ECE', 'BTech Mechanical', 'Other'];
+
 export default function RegisterPage() {
   const navigate = useNavigate();
   
@@ -13,6 +15,7 @@ export default function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
+    courseField: '',
     otp: ''
   });
   const [error, setError] = useState('');
@@ -30,6 +33,13 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Validate required fields
+    if (!formData.courseField) {
+      setError('Please select your course field');
+      setLoading(false);
+      return;
+    }
 
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
@@ -71,6 +81,7 @@ export default function RegisterPage() {
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
+        courseField: formData.courseField,
         otp: formData.otp
       });
 
@@ -181,6 +192,28 @@ export default function RegisterPage() {
                   className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder-gray-400"
                   placeholder="john@example.com"
                 />
+              </div>
+
+              <div>
+                <label htmlFor="courseField" className="block text-sm font-medium text-gray-300 mb-2">
+                  Course Field / Domain
+                </label>
+                <select
+                  id="courseField"
+                  name="courseField"
+                  required
+                  value={formData.courseField}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                >
+                  <option value="">Select your course field</option>
+                  {COURSE_FIELDS.map((field) => (
+                    <option key={field} value={field}>
+                      {field}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">You can only see courses from your selected field</p>
               </div>
 
               <div>

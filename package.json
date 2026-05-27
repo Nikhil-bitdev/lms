@@ -5,7 +5,9 @@
   "scripts": {
     "dev:client": "npm --prefix client run dev",
     "dev:server": "npm --prefix server run dev",
-    "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\""
+    "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "build": "npm --prefix client run build",
+    "start": "npm --prefix server start"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",

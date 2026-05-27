@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Formik, Form, Field } from 'formik';
 import * as Yup from 'yup';
 import { toast } from 'react-hot-toast';
 import materialService from '../../services/materialService';
+import { subjectService } from '../../services/subjectService';
 import { InputField } from '../forms/InputField';
 
 const uploadSchema = Yup.object().shape({
@@ -48,10 +49,39 @@ const materialTypeOptions = [
   { value: 'other', label: 'Other', icon: '📎', color: 'from-gray-500 to-gray-600' }
 ];
 
-export default function MaterialUpload({ courseId, onUploadSuccess, onClose }) {
+export default function MaterialUpload({ courseId, subjectId, subjectOptions = [], onUploadSuccess, onClose }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [activeSubjectId, setActiveSubjectId] = useState(subjectId || subjectOptions?.[0]?.id || null);
+  const [subjectSearch, setSubjectSearch] = useState('');
+  const [subjectMenuOpen, setSubjectMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setActiveSubjectId(subjectId || subjectOptions?.[0]?.id || null);
+  }, [subjectId, subjectOptions]);
+
+  useEffect(() => {
+    if (subjectOptions?.length > 0 && activeSubjectId) {
+      setSubjectMenuOpen(false);
+    }
+  }, [activeSubjectId, subjectOptions]);
+
+  const activeSubject = useMemo(
+    () => subjectOptions.find((subject) => String(subject.id) === String(activeSubjectId)),
+    [subjectOptions, activeSubjectId]
+  );
+
+  const filteredSubjects = useMemo(() => {
+    const query = subjectSearch.trim().toLowerCase();
+    if (!query) return subjectOptions;
+
+    return subjectOptions.filter((subject) => {
+      const name = String(subject.name || '').toLowerCase();
+      const code = String(subject.code || '').toLowerCase();
+      return name.includes(query) || code.includes(query);
+    });
+  }, [subjectOptions, subjectSearch]);
 
   const handleFileSelect = (file) => {
     if (file && file.size <= 50 * 1024 * 1024) { // 50MB limit
@@ -92,7 +122,19 @@ export default function MaterialUpload({ courseId, onUploadSuccess, onClose }) {
     console.log('[UPLOAD] File:', selectedFile.name, selectedFile.size);
 
     try {
-      await materialService.uploadMaterial(courseId, values, selectedFile);
+      // Prepare form data
+      const formData = new FormData();
+      formData.append('title', values.title);
+      formData.append('description', values.description || '');
+      formData.append('type', values.type || 'notes');
+      formData.append('file', selectedFile);
+
+      if (activeSubjectId) {
+        await subjectService.uploadMaterial(activeSubjectId, formData);
+      } else {
+        // legacy course upload (materialService wraps formData differently)
+        await materialService.uploadMaterial(courseId, values, selectedFile);
+      }
       toast.success('Material uploaded successfully!');
       onUploadSuccess && onUploadSuccess();
       onClose && onClose();
@@ -152,6 +194,99 @@ export default function MaterialUpload({ courseId, onUploadSuccess, onClose }) {
         >
           {({ isSubmitting, errors, touched, values }) => (
             <Form className="p-6 space-y-6">
+              {subjectOptions?.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">Select Subject</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Choose the subject this upload should belong to.</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                    <button
+                      type="button"
+                      onClick={() => setSubjectMenuOpen((open) => !open)}
+                      className="flex w-full items-center justify-between gap-4 rounded-2xl px-4 py-3 text-left transition hover:bg-gray-50 dark:hover:bg-gray-700/60"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Current subject</p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                            {activeSubject?.name || 'Select a subject'}
+                          </span>
+                          {activeSubject?.code && (
+                            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
+                              {activeSubject.code}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-200">
+                        <svg
+                          className={`h-4 w-4 transition-transform ${subjectMenuOpen ? 'rotate-180' : ''}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 9-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </button>
+
+                    {subjectMenuOpen && (
+                      <div className="border-t border-gray-200 p-3 dark:border-gray-700">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={subjectSearch}
+                            onChange={(e) => setSubjectSearch(e.target.value)}
+                            placeholder="Search subject name or code..."
+                            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 pr-10 text-sm text-gray-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                          />
+                          <svg className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+                          </svg>
+                        </div>
+
+                        <div className="mt-3 max-h-56 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-900/30">
+                          <div className="space-y-2">
+                            {filteredSubjects.map((subject) => {
+                              const selected = String(activeSubjectId) === String(subject.id);
+                              return (
+                                <button
+                                  key={subject.id}
+                                  type="button"
+                                  onClick={() => setActiveSubjectId(subject.id)}
+                                  className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition-all ${
+                                    selected
+                                      ? 'border-blue-500 bg-blue-50 shadow-md dark:border-blue-400 dark:bg-blue-900/20'
+                                      : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-500 dark:hover:bg-gray-700'
+                                  }`}
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">{subject.name}</p>
+                                    <p className="truncate text-xs text-gray-500 dark:text-gray-400">{subject.code || 'No code'}</p>
+                                  </div>
+                                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${selected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300'}`}>
+                                    {selected ? '✓' : '•'}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                            {filteredSubjects.length === 0 && (
+                              <div className="rounded-xl border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">
+                                No subjects match “{subjectSearch}”.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* File Upload Area */}
               <div className="space-y-3">
                 <label className="block text-sm font-semibold text-gray-900 dark:text-white">

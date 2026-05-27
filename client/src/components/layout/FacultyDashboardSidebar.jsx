@@ -9,8 +9,8 @@ const FacultyDashboardSidebar = () => (
       <NavLink to="/courses" className="block text-gray-600 dark:text-gray-300">
         All Courses
       </NavLink>
-      <NavLink to="/my-courses" className="block text-gray-600 dark:text-gray-300">
-        My Courses
+      <NavLink to="/subjects" className="block text-gray-600 dark:text-gray-300">
+        Subjects
       </NavLink>
       <NavLink to="/profile" className="block text-gray-600 dark:text-gray-300">
         Profile

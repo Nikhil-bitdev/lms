@@ -21,4 +21,9 @@ router.patch('/teachers/:id/toggle-status', adminController.toggleTeacherStatus)
 // Course management (admin creates courses and assigns to teachers)
 router.post('/courses', adminController.createCourse);
 
+// Existing uploads and assignment attachments
+router.get('/uploads', adminController.getUploadFiles);
+router.get('/assignments', adminController.getAllAssignments);
+router.post('/assignments/:type/:assignmentId/attach-existing', adminController.attachExistingFileToAssignment);
+
 module.exports = router;

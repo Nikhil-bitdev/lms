@@ -13,11 +13,7 @@ const materialService = {
     }
     formData.append('file', file);
 
-    const response = await api.post('/materials/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.post('/materials/upload', formData);
     return response.data;
   },
 

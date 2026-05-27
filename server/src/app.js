@@ -11,33 +11,31 @@ dotenv.config();
 // Initialize database
 initDatabase();
 
-// Initialize Express app
-const app = express();
-const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: [
+// CORS configuration
+const corsOrigins = process.env.NODE_ENV === 'production'
+  ? [process.env.CLIENT_URL]
+  : [
       process.env.CLIENT_URL || "http://localhost:3000",
       "http://192.168.1.3:5173",
       "http://192.168.1.3:5174",
       "http://192.168.1.13:5173",
       "http://localhost:5173",
       "http://localhost:5174"
-    ],
+    ];
+
+// Initialize Express app
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: corsOrigins,
     methods: ["GET", "POST"]
   }
 });
 
 // Middleware
 app.use(cors({
-  origin: [
-    process.env.CLIENT_URL || "http://localhost:3000",
-    "http://192.168.1.3:5173",
-    "http://192.168.1.3:5174",
-    "http://192.168.1.13:5173",
-    "http://localhost:5173",
-    "http://localhost:5174"
-  ],
+  origin: corsOrigins,
   credentials: true
 }));
 app.use(express.json());
@@ -51,6 +49,7 @@ const quizRoutes = require('./routes/quizRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const materialRoutes = require('./routes/materialRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const subjectRoutes = require('./routes/subjectRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
@@ -59,6 +58,7 @@ app.use('/api/quizzes', quizRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/subjects', subjectRoutes);
 
 // Serve uploaded files
 app.use('/uploads', express.static('uploads'));

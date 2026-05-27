@@ -24,11 +24,7 @@ export const assignmentService = {
       }
     }
 
-    const response = await api.post('/assignments', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.post('/assignments', formData);
     return response.data;
   },
 
@@ -58,11 +54,7 @@ export const assignmentService = {
       }
     }
 
-    const response = await api.post(`/assignments/${assignmentId}/submit`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await api.post(`/assignments/${assignmentId}/submit`, formData);
     return response.data;
   },
 
@@ -70,6 +62,31 @@ export const assignmentService = {
   getAssignmentSubmissions: async (assignmentId) => {
     const response = await api.get(`/assignments/${assignmentId}/submissions`);
     return response.data;
+  },
+
+  // Export submission roster to Excel (for teachers)
+  downloadSubmissionReport: async (assignmentId, fileName) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${api.defaults.baseURL}/assignments/${assignmentId}/submissions/export`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName || 'assignment-submissions.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   },
 
   // Grade submission (for teachers)
@@ -92,9 +109,7 @@ export const assignmentService = {
 
   // Upload assignment
   uploadAssignment: async (formData) => {
-    return api.post('/assignments', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    return api.post('/assignments', formData);
   },
 
   // Get assignments by course
@@ -106,6 +121,16 @@ export const assignmentService = {
   deleteAssignment: async (assignmentId) => {
     const response = await api.delete(`/assignments/${assignmentId}`);
     return response.data;
+  }
+  ,
+  // Get direct download URL for an assignment attachment
+  downloadAttachmentUrl: (fileName) => {
+    return `${api.defaults.baseURL}/assignments/download/${fileName}`;
+  },
+
+  // Get direct download URL for an assignment attachment by index
+  downloadAttachmentByIndexUrl: (assignmentId, attachmentIndex) => {
+    return `${api.defaults.baseURL}/assignments/${assignmentId}/download/${attachmentIndex}`;
   }
 };
 

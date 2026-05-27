@@ -199,6 +199,7 @@ const sendPasswordResetEmail = async ({ email, resetLink }) => {
   const transporter = createTransporter();
   
   if (!transporter) {
+    console.log('📧 Email not configured. Reset link:', resetLink);
     return { success: false, message: 'Email not configured' };
   }
 
@@ -208,30 +209,112 @@ const sendPasswordResetEmail = async ({ email, resetLink }) => {
       address: process.env.EMAIL_USER
     },
     to: email,
-    subject: 'Password Reset Request',
+    subject: 'LMS Password Reset',
     html: `
-      <h2>Password Reset Request</h2>
-      <p>You requested to reset your password. Click the link below to proceed:</p>
-      <a href="${resetLink}" style="display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a>
-      <p>This link will expire in 1 hour.</p>
-      <p>If you didn't request this, please ignore this email.</p>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+          }
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background: #667eea;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+          }
+          .content {
+            background: #f9f9f9;
+            padding: 20px;
+            border: 1px solid #ddd;
+          }
+          .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white !important;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-weight: bold;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 12px;
+          }
+          .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Password Reset</h1>
+          </div>
+          <div class="content">
+            <p>Hello,</p>
+            <p>You requested to reset your password for your LMS account. Click the button below to proceed:</p>
+            
+            <div style="text-align: center;">
+              <a href="${resetLink}" class="button">Reset Your Password</a>
+            </div>
+            
+            <p>Or copy and paste this link in your browser:</p>
+            <p style="word-break: break-all; background: #f0f0f0; padding: 10px; border-radius: 3px;">
+              ${resetLink}
+            </p>
+            
+            <div class="warning">
+              <strong>⏰ This link expires in 1 hour.</strong>
+            </div>
+            
+            <p><strong>Didn't request this?</strong></p>
+            <p>If you didn't request a password reset, you can safely ignore this email. Your account is secure.</p>
+            
+            <p>Best regards,<br><strong>LMS Team</strong></p>
+          </div>
+          <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+          </div>
+        </div>
+      </body>
+      </html>
     `,
-    text: `
-Password Reset Request
+    text: `Password Reset Request
 
 You requested to reset your password. Visit this link to proceed:
 ${resetLink}
 
 This link will expire in 1 hour.
 If you didn't request this, please ignore this email.
-    `
+
+Best regards,
+LMS Team`
   };
 
   try {
+    console.log('📧 Sending password reset email to:', email);
     const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Password reset email sent. MessageID:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error sending password reset email:', error);
+    console.error('❌ Error sending password reset email:', error.message);
     return { success: false, error: error.message };
   }
 };

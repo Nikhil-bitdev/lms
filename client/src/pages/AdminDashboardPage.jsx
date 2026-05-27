@@ -2,19 +2,22 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { subjectService } from '../services/subjectService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AdminCourseList from '../components/admin/AdminCourseList';
-import EditCourseTeacherModal from '../components/admin/EditCourseTeacherModal';
+import AttachExistingFileModal from '../components/admin/AttachExistingFileModal';
 import { 
   UserPlusIcon, 
   UserGroupIcon, 
-  CheckCircleIcon, 
   XCircleIcon,
   ClockIcon,
-  EnvelopeIcon,
-  AcademicCapIcon
+  BookOpenIcon,
+  PlusIcon,
+  PaperClipIcon
 } from '@heroicons/react/24/outline';
+
+const COURSE_FIELDS = ['B.Tech', 'BCA', 'MBA', 'MSc', 'BTech CSE', 'BTech ECE', 'BTech Mechanical', 'Other'];
 
 const AdminDashboardPage = () => {
   const { user } = useAuth();
@@ -23,21 +26,21 @@ const AdminDashboardPage = () => {
   const [teachers, setTeachers] = useState([]);
   const [invitations, setInvitations] = useState([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [showCourseModal, setShowCourseModal] = useState(false);
+  const [showSubjectModal, setShowSubjectModal] = useState(false);
+  const [showAttachModal, setShowAttachModal] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
-    lastName: ''
+    lastName: '',
+    courseField: ''
   });
-  const [courseFormData, setCourseFormData] = useState({
-    title: '',
+  const [subjectFormData, setSubjectFormData] = useState({
+    name: '',
     code: '',
     description: '',
-    startDate: '',
-    endDate: '',
-    enrollmentLimit: '',
-    teacherId: ''
+    courseField: ''
   });
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState([]);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({
@@ -74,10 +77,16 @@ const AdminDashboardPage = () => {
   const handleInviteTeacher = async (e) => {
     e.preventDefault();
     try {
+      // Validate courseField
+      if (!formData.courseField) {
+        setError('Please select a course field');
+        return;
+      }
+
       const response = await api.post('/admin/teachers/invite', formData);
       setSuccess(`Invitation sent to ${formData.email}`);
       setShowInviteModal(false);
-      setFormData({ email: '', firstName: '', lastName: '' });
+      setFormData({ email: '', firstName: '', lastName: '', courseField: '' });
       fetchData();
       
       // Show invitation link
@@ -90,13 +99,48 @@ const AdminDashboardPage = () => {
     }
   };
 
+  const handleCreateAndAssignSubject = async (e) => {
+    e.preventDefault();
+    try {
+      if (!subjectFormData.name || !subjectFormData.code || !subjectFormData.courseField) {
+        setError('Please fill in all required subject fields');
+        return;
+      }
+
+      if (selectedTeacherIds.length === 0) {
+        setError('Select at least one teacher to assign');
+        return;
+      }
+
+      const subject = await subjectService.createSubject(subjectFormData);
+      const subjectId = subject?.id;
+
+      if (!subjectId) {
+        throw new Error('Subject was created but no subject id was returned');
+      }
+
+      await Promise.all(selectedTeacherIds.map((teacherId) => subjectService.assignTeacher(subjectId, teacherId)));
+
+      setSuccess(`Subject ${subjectFormData.name} created and assigned successfully`);
+      setShowSubjectModal(false);
+      setSubjectFormData({ name: '', code: '', description: '', courseField: '' });
+      setSelectedTeacherIds([]);
+      fetchData();
+      setTimeout(() => setSuccess(null), 5000);
+    } catch (err) {
+      console.error('Error creating and assigning subject:', err);
+      setError(err.response?.data?.message || 'Failed to create and assign subject');
+      setTimeout(() => setError(null), 5000);
+    }
+  };
+
   const handleToggleTeacherStatus = async (teacherId) => {
     try {
       await api.patch(`/admin/teachers/${teacherId}/toggle-status`);
       setSuccess('Teacher status updated successfully');
       fetchData();
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
+    } catch {
       setError('Failed to update teacher status');
       setTimeout(() => setError(null), 3000);
     }
@@ -132,36 +176,9 @@ const AdminDashboardPage = () => {
       setSuccess('Invitation revoked successfully');
       fetchData();
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
+    } catch {
       setError('Failed to revoke invitation');
       setTimeout(() => setError(null), 3000);
-    }
-  };
-
-  const handleCreateCourse = async (e) => {
-    e.preventDefault();
-    try {
-      const courseData = {
-        ...courseFormData,
-        enrollmentLimit: parseInt(courseFormData.enrollmentLimit) || null
-      };
-      
-      await api.post('/admin/courses', courseData);
-      setSuccess('Course created and assigned successfully');
-      setShowCourseModal(false);
-      setCourseFormData({
-        title: '',
-        code: '',
-        description: '',
-        startDate: '',
-        endDate: '',
-        enrollmentLimit: '',
-        teacherId: ''
-      });
-      setTimeout(() => setSuccess(null), 5000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create course');
-      setTimeout(() => setError(null), 5000);
     }
   };
 
@@ -181,18 +198,25 @@ const AdminDashboardPage = () => {
         </h1>
         <div className="flex gap-3">
           <button
-            onClick={() => setShowCourseModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <AcademicCapIcon className="w-5 h-5" />
-            Create Course
-          </button>
-          <button
             onClick={() => setShowInviteModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <UserPlusIcon className="w-5 h-5" />
             Invite Teacher
+          </button>
+          <button
+            onClick={() => setShowSubjectModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+          >
+            <BookOpenIcon className="w-5 h-5" />
+            Create & Assign Subject
+          </button>
+          <button
+            onClick={() => setShowAttachModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <PaperClipIcon className="w-5 h-5" />
+            Attach Upload
           </button>
         </div>
       </div>
@@ -431,6 +455,24 @@ const AdminDashboardPage = () => {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Course Field / Domain *
+                </label>
+                <select
+                  required
+                  value={formData.courseField}
+                  onChange={(e) => setFormData({ ...formData, courseField: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select a course field</option>
+                  {COURSE_FIELDS.map((field) => (
+                    <option key={field} value={field}>
+                      {field}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="flex gap-3 mt-6">
                 <button
                   type="submit"
@@ -451,146 +493,119 @@ const AdminDashboardPage = () => {
         </div>
       )}
 
-      {/* Create Course Modal */}
-      {showCourseModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 my-8">
+      {/* Create & Assign Subject Modal */}
+      {showSubjectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
-              Create New Course
+              Create and Assign Subject
             </h3>
-            <form onSubmit={handleCreateCourse} className="space-y-4">
+            <form onSubmit={handleCreateAndAssignSubject} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Course Title *
+                    Subject Name *
                   </label>
                   <input
                     type="text"
                     required
-                    value={courseFormData.title}
-                    onChange={(e) => setCourseFormData({ ...courseFormData, title: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="e.g., Introduction to Computer Science"
+                    value={subjectFormData.name}
+                    onChange={(e) => setSubjectFormData({ ...subjectFormData, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g., Data Structures"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Course Code *
+                    Subject Code *
                   </label>
                   <input
                     type="text"
                     required
-                    value={courseFormData.code}
-                    onChange={(e) => setCourseFormData({ 
-                      ...courseFormData, 
-                      code: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="e.g., CS-101"
-                    title="3-20 characters, uppercase letters, numbers, and hyphens only"
+                    value={subjectFormData.code}
+                    onChange={(e) => setSubjectFormData({ ...subjectFormData, code: e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '') })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="e.g., CS-201"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Assign to Teacher *
-                </label>
-                <select
-                  required
-                  value={courseFormData.teacherId}
-                  onChange={(e) => setCourseFormData({ ...courseFormData, teacherId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="">Select a teacher...</option>
-                  {activeTeachers.map((teacher) => (
-                    <option key={teacher.id} value={teacher.id}>
-                      {teacher.firstName} {teacher.lastName} ({teacher.email})
-                    </option>
-                  ))}
-                </select>
-                {activeTeachers.length === 0 && (
-                  <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">
-                    No active teachers available. Please invite teachers first.
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Description *
+                  Description
                 </label>
                 <textarea
-                  required
                   rows="3"
-                  value={courseFormData.description}
-                  onChange={(e) => setCourseFormData({ ...courseFormData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Course description..."
+                  value={subjectFormData.description}
+                  onChange={(e) => setSubjectFormData({ ...subjectFormData, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Optional subject description"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Start Date *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={courseFormData.startDate}
-                    onChange={(e) => setCourseFormData({ ...courseFormData, startDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    End Date *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={courseFormData.endDate}
-                    onChange={(e) => setCourseFormData({ ...courseFormData, endDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Enrollment Limit
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={courseFormData.enrollmentLimit}
-                    onChange={(e) => setCourseFormData({ ...courseFormData, enrollmentLimit: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="Optional"
-                  />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Course Field *
+                </label>
+                <select
+                  required
+                  value={subjectFormData.courseField}
+                  onChange={(e) => setSubjectFormData({ ...subjectFormData, courseField: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select a course field</option>
+                  {COURSE_FIELDS.map((field) => (
+                    <option key={field} value={field}>{field}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Assign to Teachers *
+                </label>
+                <div className="max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-2 bg-gray-50 dark:bg-gray-900/30">
+                  {activeTeachers.length > 0 ? activeTeachers.map((teacher) => (
+                    <label key={teacher.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white dark:hover:bg-gray-800 cursor-pointer border border-transparent hover:border-blue-200 dark:hover:border-blue-800">
+                      <input
+                        type="checkbox"
+                        checked={selectedTeacherIds.includes(teacher.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedTeacherIds([...selectedTeacherIds, teacher.id]);
+                          } else {
+                            setSelectedTeacherIds(selectedTeacherIds.filter((id) => id !== teacher.id));
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          {teacher.firstName} {teacher.lastName}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{teacher.email}</p>
+                      </div>
+                    </label>
+                  )) : (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No active teachers available.</p>
+                  )}
                 </div>
               </div>
 
               <div className="flex gap-3 mt-6">
                 <button
                   type="submit"
-                  disabled={activeTeachers.length === 0}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
                 >
-                  Create Course
+                  <PlusIcon className="w-4 h-4 inline mr-2" />
+                  Create and Assign
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    setShowCourseModal(false);
-                    setCourseFormData({
-                      title: '',
-                      code: '',
-                      description: '',
-                      startDate: '',
-                      endDate: '',
-                      enrollmentLimit: '',
-                      teacherId: ''
-                    });
+                    setShowSubjectModal(false);
+                    setSubjectFormData({ name: '', code: '', description: '', courseField: '' });
+                    setSelectedTeacherIds([]);
                   }}
                   className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
@@ -612,6 +627,15 @@ const AdminDashboardPage = () => {
         confirmText="Delete Teacher"
         cancelText="Cancel"
         type="danger"
+      />
+
+      <AttachExistingFileModal
+        isOpen={showAttachModal}
+        onClose={() => setShowAttachModal(false)}
+        onAttached={(message) => {
+          setSuccess(message || 'File attached successfully');
+          setTimeout(() => setSuccess(null), 4000);
+        }}
       />
     </div>
   );

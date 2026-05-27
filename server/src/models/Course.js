@@ -43,6 +43,11 @@ const Course = sequelize.define('Course', {
   teacherId: {
     type: DataTypes.INTEGER,
     allowNull: false
+  },
+  courseField: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    comment: 'e.g., B.Tech, BCA, MBA, etc. - Students can only see courses for their field'
   }
 });
 

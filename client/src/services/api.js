@@ -34,11 +34,17 @@ let baseURL = explicitUrl || cached || 'http://localhost:5000/api';
 let resolvingPromise = null;
 
 async function probePort(port) {
+  // Probe with a short timeout to avoid long hangs when ports are unreachable
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 800);
   try {
-    const res = await fetch(`http://localhost:${port}/api/ping`, { method: 'GET', cache: 'no-store' });
-    if (res.ok) return true;
-  } catch (_) {}
-  return false;
+    const res = await fetch(`http://localhost:${port}/api/ping`, { method: 'GET', cache: 'no-store', signal: controller.signal });
+    clearTimeout(timeout);
+    return res.ok;
+  } catch (err) {
+    clearTimeout(timeout);
+    return false;
+  }
 }
 
 async function resolveDynamicBase() {
@@ -89,6 +95,17 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // If request body is FormData, remove the JSON content-type so the
+    // browser/axios can set the proper multipart/form-data boundary header.
+    try {
+      if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+        if (config.headers && config.headers['Content-Type']) {
+          delete config.headers['Content-Type'];
+        }
+      }
+    } catch (e) {
+      // ignore in non-browser environments
     }
     return config;
   },

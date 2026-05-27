@@ -5,6 +5,21 @@ import { useAuth } from '../../contexts/AuthContext';
 import { assignmentService } from '../../services/assignmentService';
 import LoadingSpinner from '../LoadingSpinner';
 
+const normalizeAttachments = (attachments) => {
+  if (Array.isArray(attachments)) return attachments;
+
+  if (typeof attachments === 'string') {
+    try {
+      const parsed = JSON.parse(attachments);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+};
+
 const AssignmentDetails = () => {
   const { assignmentId } = useParams();
   const navigate = useNavigate();
@@ -213,21 +228,22 @@ const AssignmentDetails = () => {
     }
   };
 
-  const downloadAttachment = async (attachment) => {
+  const downloadAttachment = async (attachment, index) => {
     try {
-      // Handle both string filenames and file objects
-      const fileName = typeof attachment === 'string' ? attachment : (attachment.filename || attachment.originalName);
-      const displayName = typeof attachment === 'string' ? attachment : (attachment.originalName || attachment.filename);
-      
-      // Get the base URL - don't add /api again as it's already in the baseURL
-      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      // Remove /api if it's already in baseURL to avoid duplication
-      const cleanBaseURL = baseURL.replace(/\/api$/, '');
-      const downloadUrl = `${cleanBaseURL}/api/assignments/download/${fileName}`;
-      
-      console.log('Downloading file:', fileName, 'from:', downloadUrl);
-      
-      // Fetch the file with authentication
+      const displayName = typeof attachment === 'string'
+        ? attachment
+        : (attachment.originalName || attachment.filename || attachment.fileName || 'download');
+
+      const downloadUrl = index !== undefined
+        ? assignmentService.downloadAttachmentByIndexUrl(assignmentId, index)
+        : assignmentService.downloadAttachmentUrl(
+            typeof attachment === 'string'
+              ? attachment
+              : (attachment.filename || attachment.fileName || attachment.originalName)
+          );
+
+      console.log('Downloading assignment file from:', downloadUrl);
+
       const token = localStorage.getItem('token');
       const response = await fetch(downloadUrl, {
         method: 'GET',
@@ -241,27 +257,24 @@ const AssignmentDetails = () => {
         throw new Error(`Download failed: ${response.status}`);
       }
 
-      // Create blob from response
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      
-      // Create download link
       const link = document.createElement('a');
       link.href = url;
       link.download = displayName;
       document.body.appendChild(link);
       link.click();
-      
-      // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       toast.success('File downloaded successfully');
     } catch (error) {
       console.error('Download error:', error);
       toast.error('Failed to download file. Please check console for details.');
     }
   };
+
+  const attachmentList = normalizeAttachments(assignment.attachments);
 
   if (loading) return <LoadingSpinner />;
   if (!assignment) return <div>Assignment not found</div>;
@@ -412,7 +425,7 @@ const AssignmentDetails = () => {
           </div>
           
           {/* Assignment Files */}
-          {assignment.attachments && assignment.attachments.length > 0 && (
+          {attachmentList.length > 0 && (
           <div className="mt-6 pt-6 border-t-2 border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
@@ -421,11 +434,11 @@ const AssignmentDetails = () => {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                Attached Files ({assignment.attachments.length})
+                Attached Files ({attachmentList.length})
               </h3>
             </div>
             <div className="grid gap-3">
-              {assignment.attachments.map((attachment, index) => (
+              {attachmentList.map((attachment, index) => (
                 <div
                   key={index}
                   className="group flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-700/50 dark:to-blue-900/20 rounded-xl border-2 border-gray-200 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg transition-all transform hover:scale-[1.02]"
@@ -446,7 +459,7 @@ const AssignmentDetails = () => {
                     </div>
                   </div>
                   <button
-                    onClick={() => downloadAttachment(attachment)}
+                    onClick={() => downloadAttachment(attachment, index)}
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-500/50 transition-all shadow-md hover:shadow-xl transform hover:scale-105 active:scale-95 font-medium"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

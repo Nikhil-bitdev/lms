@@ -24,15 +24,8 @@ async function createAdmin() {
       process.exit(0);
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(adminData.password, salt);
-
-    // Create admin user
-    const admin = await User.create({
-      ...adminData,
-      password: hashedPassword
-    });
+    // Create admin user (password will be hashed by the User model hook)
+    const admin = await User.create(adminData);
 
     console.log('✅ Admin user created successfully!');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

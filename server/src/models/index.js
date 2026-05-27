@@ -63,6 +63,26 @@ models.Material.belongsTo(models.User, { as: 'uploader', foreignKey: 'uploadedBy
 models.User.hasMany(models.TeacherInvitation, { foreignKey: 'invitedBy' });
 models.TeacherInvitation.belongsTo(models.User, { as: 'admin', foreignKey: 'invitedBy' });
 
+models.User.hasMany(models.PasswordReset, { foreignKey: 'userId' });
+models.PasswordReset.belongsTo(models.User, { foreignKey: 'userId' });
+
+// Subject associations
+models.Subject.belongsToMany(models.User, { as: 'teachers', through: models.SubjectTeacher, foreignKey: 'subjectId', otherKey: 'teacherId' });
+models.User.belongsToMany(models.Subject, { as: 'subjects', through: models.SubjectTeacher, foreignKey: 'teacherId', otherKey: 'subjectId' });
+
+models.Subject.hasMany(models.SubjectMaterial, { foreignKey: 'subjectId' });
+models.SubjectMaterial.belongsTo(models.Subject, { foreignKey: 'subjectId' });
+models.User.hasMany(models.SubjectMaterial, { foreignKey: 'uploadedBy' });
+models.SubjectMaterial.belongsTo(models.User, { as: 'uploader', foreignKey: 'uploadedBy' });
+
+models.Subject.hasMany(models.SubjectAssignment, { foreignKey: 'subjectId' });
+models.SubjectAssignment.belongsTo(models.Subject, { foreignKey: 'subjectId' });
+
+models.SubjectAssignment.hasMany(models.SubjectSubmission, { foreignKey: 'subjectAssignmentId' });
+models.SubjectSubmission.belongsTo(models.SubjectAssignment, { foreignKey: 'subjectAssignmentId' });
+models.User.hasMany(models.SubjectSubmission, { foreignKey: 'userId' });
+models.SubjectSubmission.belongsTo(models.User, { foreignKey: 'userId' });
+
 module.exports = {
   sequelize,
   ...models

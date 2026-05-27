@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const TeacherRegisterPage = () => {
@@ -15,15 +15,33 @@ const TeacherRegisterPage = () => {
 
   useEffect(() => {
     fetchInvitation();
+    
+    // Set timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      if (loading) {
+        console.error('⏱️  Loading timeout - page took too long to load');
+        setLoading(false);
+        setError('Page took too long to load. Please refresh and try again.');
+      }
+    }, 15000); // 15 second timeout
+    
+    return () => clearTimeout(loadingTimeout);
   }, [token]);
 
   const fetchInvitation = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      const response = await axios.get(`${apiUrl}/auth/register/teacher/${token}`);
+      console.log('📋 Fetching invitation...');
+      console.log('Token:', token);
+      
+      const response = await api.get(`/auth/register/teacher/${token}`);
+      console.log('✅ Invitation fetched successfully');
       setInvitation(response.data);
+      setError(null);
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid or expired invitation');
+      console.error('❌ Fetch invitation error:', err.message);
+      console.error('Error response:', err.response?.data);
+      const errorMsg = err.response?.data?.message || err.message || 'Invalid or expired invitation';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -44,14 +62,23 @@ const TeacherRegisterPage = () => {
     }
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-      await axios.post(`${apiUrl}/auth/register/teacher/${token}`, { password });
+      console.log('📝 Submitting teacher registration...');
+      console.log('Token:', token);
+      
+      const response = await api.post(`/auth/register/teacher/${token}`, { 
+        password 
+      });
+      
+      console.log('✅ Registration successful');
       setSuccess(true);
       setTimeout(() => {
         navigate('/login');
       }, 3000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      console.error('❌ Registration error:', err.message);
+      console.error('Error response:', err.response?.data);
+      const errorMsg = err.response?.data?.message || err.message || 'Registration failed';
+      setError(errorMsg);
     }
   };
 

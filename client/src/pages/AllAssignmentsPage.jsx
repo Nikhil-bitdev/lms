@@ -97,13 +97,13 @@ const AllAssignmentsPage = () => {
           </div>
           <div className="flex-1">
             <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">
-              {isAdmin ? 'All Assignments' : isTeacher ? 'My Courses' : 'All Assignments'}
+              {isAdmin ? 'All Assignments' : isTeacher ? 'Assignments' : 'All Assignments'}
             </h1>
             <p className="text-blue-100 text-lg">
               {isAdmin
                 ? 'All assignments from all courses in the system'
                 : isTeacher 
-                  ? 'Select a course to view and manage assignments'
+                  ? 'Assignments for your assigned courses'
                   : 'All assignments from your enrolled courses'
               }
             </p>

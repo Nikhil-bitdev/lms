@@ -4,8 +4,13 @@ const { Op, fn, col } = require('sequelize');
 // Create a new course
 const createCourse = async (req, res) => {
   try {
-    const { title, description, code, startDate, endDate, enrollmentLimit } = req.body;
+    const { title, description, code, startDate, endDate, enrollmentLimit, courseField } = req.body;
     
+    // Validate courseField
+    if (!courseField) {
+      return res.status(400).json({ message: 'Course field (e.g., B.Tech, BCA) is required' });
+    }
+
     // Check if course code already exists
     const existingCourse = await Course.findOne({ where: { code } });
     if (existingCourse) {
@@ -19,6 +24,7 @@ const createCourse = async (req, res) => {
       startDate,
       endDate,
       enrollmentLimit,
+      courseField,
       teacherId: req.user.id,
       isPublished: true // Auto-publish courses when created
     });
@@ -69,9 +75,19 @@ const getCourses = async (req, res) => {
     if (teacherId) where.teacherId = teacherId;
     if (isPublished !== undefined) where.isPublished = isPublished;
 
-    // For students, only show published courses
+    // For students, only show published courses from their field
     if (req.user.role === 'student') {
       where.isPublished = true;
+      if (req.user.courseField) {
+        where.courseField = req.user.courseField;
+      }
+    }
+
+    // For teachers, only show their own courses and courses from their field
+    if (req.user.role === 'teacher') {
+      if (req.user.courseField) {
+        where.courseField = req.user.courseField;
+      }
     }
 
     const { count, rows: courses } = await Course.findAndCountAll({
@@ -218,6 +234,13 @@ const enrollInCourse = async (req, res) => {
 
     if (!course.isPublished) {
       return res.status(400).json({ message: 'Cannot enroll in unpublished course' });
+    }
+
+    // Check if student's courseField matches course field (if student has a field assigned)
+    if (req.user.role === 'student' && req.user.courseField && course.courseField !== req.user.courseField) {
+      return res.status(403).json({ 
+        message: `You can only enroll in courses for your field (${req.user.courseField}). This course is for ${course.courseField} students.` 
+      });
     }
 
     // Check if already enrolled

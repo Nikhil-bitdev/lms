@@ -14,6 +14,11 @@ const {
 router.post('/register', registerValidation, validate, authController.register);
 router.post('/login', loginValidation, validate, authController.login);
 
+// Forgot Password routes
+router.post('/forgot-password', authController.requestPasswordReset);
+router.get('/verify-reset-token/:token', authController.verifyResetToken);
+router.post('/reset-password', authController.resetPassword);
+
 // OTP routes for login
 router.post('/check-role', authController.checkRole);
 router.post('/send-otp', authController.sendOTPCode);

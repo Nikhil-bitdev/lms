@@ -32,6 +32,13 @@ router.get(
   assignmentController.downloadAttachment
 );
 
+// Download assignment attachment by index (must be before /:id)
+router.get(
+  '/:assignmentId/download/:attachmentIndex',
+  auth,
+  assignmentController.downloadAttachmentByIndex
+);
+
 // Get all assignments for a course
 router.get(
   '/course/:courseId',
@@ -45,6 +52,14 @@ router.get(
   auth,
   authorize('teacher', 'instructor', 'admin'),
   assignmentController.getAssignmentSubmissions
+);
+
+// Export assignment submission roster to Excel (teachers and admins only)
+router.get(
+  '/:assignmentId/submissions/export',
+  auth,
+  authorize('teacher', 'instructor', 'admin'),
+  assignmentController.exportAssignmentSubmissions
 );
 
 // Submit assignment (students only)

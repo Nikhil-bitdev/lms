@@ -45,6 +45,11 @@ const User = sequelize.define('User', {
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  courseField: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'e.g., B.Tech, BCA, MBA, etc.'
   }
 }, {
   hooks: {

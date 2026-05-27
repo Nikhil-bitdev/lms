@@ -43,6 +43,11 @@ const TeacherInvitation = sequelize.define('TeacherInvitation', {
   expiresAt: {
     type: DataTypes.DATE,
     allowNull: false
+  },
+  courseField: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'e.g., B.Tech, BCA, MBA, etc.'
   }
 }, {
   timestamps: true,

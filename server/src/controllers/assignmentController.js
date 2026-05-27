@@ -1,6 +1,7 @@
 const { Assignment, Submission, User, Course } = require('../models');
 const fs = require('fs').promises;
 const path = require('path');
+const ExcelJS = require('exceljs');
 
 // Create new assignment
 const createAssignment = async (req, res) => {
@@ -312,6 +313,153 @@ const getAssignmentSubmissions = async (req, res) => {
   }
 };
 
+// Export assignment submissions to Excel
+const exportAssignmentSubmissions = async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+
+    const assignment = await Assignment.findByPk(assignmentId, {
+      include: [{ model: Course, attributes: ['id', 'title', 'code', 'teacherId'] }]
+    });
+
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    const isAdmin = req.user.role === 'admin';
+    const isTeacher = req.user.role === 'teacher' || req.user.role === 'instructor';
+    if (!isAdmin && !(isTeacher && assignment.Course.teacherId == req.user.id)) {
+      return res.status(403).json({ message: 'Not authorized to export this assignment report' });
+    }
+
+    const submissions = await Submission.findAll({
+      where: { assignmentId },
+      include: [{ model: User, attributes: ['id', 'firstName', 'lastName', 'email'] }],
+      order: [['submittedAt', 'DESC']]
+    });
+
+    const reportRows = submissions.map((submission) => {
+      const submissionJSON = submission.toJSON();
+      const attachmentNames = Array.isArray(submissionJSON.attachments)
+        ? submissionJSON.attachments
+            .map((attachment) => {
+              if (!attachment) return '';
+              if (typeof attachment === 'string') return attachment;
+              return attachment.originalName || attachment.originalname || attachment.fileName || attachment.filename || '';
+            })
+            .filter(Boolean)
+        : [];
+
+      return {
+        studentName: `${submissionJSON.User?.firstName || ''} ${submissionJSON.User?.lastName || ''}`.trim() || 'Unknown Student',
+        email: submissionJSON.User?.email || '',
+        submittedAtText: submissionJSON.submittedAt ? new Date(submissionJSON.submittedAt).toLocaleString() : '',
+        grade: submissionJSON.grade ?? '',
+        feedback: submissionJSON.feedback || '',
+        submissionStatus: submissionJSON.status || 'submitted',
+        submissionId: submissionJSON.id,
+        attachments: attachmentNames.join(', ')
+      };
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'LMS';
+    workbook.created = new Date();
+    workbook.modified = new Date();
+
+    const worksheet = workbook.addWorksheet('Submissions');
+    worksheet.properties.defaultRowHeight = 20;
+    worksheet.views = [{ state: 'frozen', ySplit: 5 }];
+
+    worksheet.mergeCells('A1:H1');
+    worksheet.getCell('A1').value = 'Assignment Submissions Report';
+    worksheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+    worksheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+
+    worksheet.getCell('A2').value = 'Assignment';
+    worksheet.getCell('B2').value = assignment.title;
+    worksheet.getCell('A3').value = 'Course';
+    worksheet.getCell('B3').value = `${assignment.Course.title}${assignment.Course.code ? ` (${assignment.Course.code})` : ''}`;
+    worksheet.getCell('A4').value = 'Generated At';
+    worksheet.getCell('B4').value = new Date().toLocaleString();
+
+    worksheet.getRow(2).font = { bold: true };
+    worksheet.getRow(3).font = { bold: true };
+    worksheet.getRow(4).font = { bold: true };
+
+    worksheet.addRow([]);
+
+      const headerRow = worksheet.addRow([
+        'Student Name',
+        'Email',
+        'Submitted At',
+        'Grade',
+        'Feedback',
+        'Status',
+        'Submission ID',
+        'Files'
+      ]);
+
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1D4ED8' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF93C5FD' } },
+        left: { style: 'thin', color: { argb: 'FF93C5FD' } },
+        bottom: { style: 'thin', color: { argb: 'FF93C5FD' } },
+        right: { style: 'thin', color: { argb: 'FF93C5FD' } }
+      };
+    });
+
+      if (reportRows.length === 0) {
+      const row = worksheet.addRow(['No submissions found for this assignment.']);
+      worksheet.mergeCells(row.number, 1, row.number, 8);
+    } else {
+      reportRows.forEach((student) => {
+        const row = worksheet.addRow([
+          student.studentName,
+          student.email,
+          student.submittedAtText,
+          student.grade,
+          student.feedback,
+            student.submissionStatus,
+            student.submissionId,
+            student.attachments
+        ]);
+
+        row.eachCell((cell) => {
+          cell.alignment = { vertical: 'middle', wrapText: true };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+            left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+            bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+            right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
+          };
+        });
+
+          row.getCell(6).font = { bold: true, color: { argb: 'FF166534' } };
+      });
+    }
+
+    worksheet.columns.forEach((column, index) => {
+        const widths = [28, 32, 22, 12, 32, 16, 14, 32];
+      column.width = widths[index] || 18;
+    });
+
+    const safeTitle = assignment.title.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '') || `assignment_${assignmentId}`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeTitle}_submissions.xlsx"`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Export assignment submissions error:', error);
+    res.status(500).json({ message: 'Error exporting assignment submissions' });
+  }
+};
+
 // Get all assignments for the logged-in user
 const getUserAssignments = async (req, res) => {
   try {
@@ -421,6 +569,99 @@ const downloadAttachment = async (req, res) => {
   }
 };
 
+// Download assignment attachment by index so older attachment records that
+// don't preserve the exact stored filename still work reliably.
+const downloadAttachmentByIndex = async (req, res) => {
+  try {
+    const { assignmentId, attachmentIndex } = req.params;
+
+    const assignment = await Assignment.findByPk(assignmentId);
+    if (!assignment) {
+      return res.status(404).json({ message: 'Assignment not found' });
+    }
+
+    let attachments = assignment.attachments;
+    if (!attachments) {
+      return res.status(404).json({ message: 'No attachments found for this assignment' });
+    }
+
+    if (typeof attachments === 'string') {
+      try {
+        attachments = JSON.parse(attachments);
+      } catch (error) {
+        attachments = [];
+      }
+    }
+
+    const index = parseInt(attachmentIndex, 10);
+    const attachment = attachments[index];
+    if (!attachment) {
+      return res.status(404).json({ message: 'Attachment not found' });
+    }
+
+    const candidates = [];
+    const addCandidate = (value) => {
+      if (!value || typeof value !== 'string') return;
+      const normalized = value.trim();
+      if (!normalized) return;
+
+      candidates.push(normalized);
+      candidates.push(path.resolve(normalized));
+      candidates.push(path.resolve(__dirname, '../../', normalized));
+      candidates.push(path.resolve(__dirname, '../../uploads', path.basename(normalized)));
+      candidates.push(path.resolve(process.cwd(), 'uploads', path.basename(normalized)));
+    };
+
+    if (typeof attachment === 'string') {
+      addCandidate(attachment);
+    } else {
+      addCandidate(attachment.filename);
+      addCandidate(attachment.fileName);
+      addCandidate(attachment.originalName);
+      addCandidate(attachment.path);
+      addCandidate(attachment.filePath);
+    }
+
+    // Try basename fallbacks for older records that may store a display name
+    if (typeof attachment === 'object' && attachment !== null) {
+      if (attachment.originalName) addCandidate(path.basename(attachment.originalName));
+      if (attachment.filename) addCandidate(path.basename(attachment.filename));
+      if (attachment.fileName) addCandidate(path.basename(attachment.fileName));
+    }
+
+    const seen = new Set();
+    const uniqueCandidates = candidates.filter((candidate) => {
+      if (seen.has(candidate)) return false;
+      seen.add(candidate);
+      return true;
+    });
+
+    let foundPath = null;
+    for (const candidate of uniqueCandidates) {
+      try {
+        await fs.access(candidate);
+        foundPath = candidate;
+        break;
+      } catch (error) {
+        // keep trying
+      }
+    }
+
+    if (!foundPath) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+    const downloadName = typeof attachment === 'string'
+      ? path.basename(attachment)
+      : (attachment.originalName || attachment.filename || attachment.fileName || 'download');
+
+    res.download(foundPath, downloadName);
+  } catch (error) {
+    console.error('Download attachment by index error:', error);
+    res.status(500).json({ message: 'Error downloading file' });
+  }
+};
+
 // Delete assignment (admin only)
 const deleteAssignment = async (req, res) => {
   try {
@@ -482,5 +723,7 @@ module.exports = {
   getAssignmentSubmissions,
   getUserAssignments,
   downloadAttachment,
+  downloadAttachmentByIndex,
+  exportAssignmentSubmissions,
   deleteAssignment
 };

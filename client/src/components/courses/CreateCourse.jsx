@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { courseService } from '../../services/courseService';
 import { InputField } from '../forms/InputField';
 
+const COURSE_FIELDS = ['B.Tech', 'BCA', 'MBA', 'MSc', 'BTech CSE', 'BTech ECE', 'BTech Mechanical', 'Other'];
+
 const CreateCourse = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -11,6 +13,7 @@ const CreateCourse = () => {
     title: '',
     code: '',
     description: '',
+    courseField: '',
     startDate: '',
     endDate: '',
     enrollmentLimit: '',
@@ -41,6 +44,7 @@ const CreateCourse = () => {
         title: formData.title,
         code: formData.code,
         description: formData.description,
+        courseField: formData.courseField,
         startDate: formData.startDate,
         endDate: formData.endDate,
         enrollmentLimit: parseInt(formData.enrollmentLimit) || null
@@ -109,6 +113,30 @@ const CreateCourse = () => {
           />
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Use uppercase letters, numbers, and hyphens only (e.g., CS-101)
+          </p>
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="courseField" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Course Field / Domain
+          </label>
+          <select
+            name="courseField"
+            id="courseField"
+            value={formData.courseField}
+            onChange={handleChange}
+            required
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          >
+            <option value="">Select course field</option>
+            {COURSE_FIELDS.map((field) => (
+              <option key={field} value={field}>
+                {field}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Students can only see courses from their selected field
           </p>
         </div>
 

@@ -1,14 +1,21 @@
 const nodemailer = require('nodemailer').default || require('nodemailer');
 const OTP = require('../models/OTP');
 
-// Configure email transporter using existing EMAIL_USER and EMAIL_PASSWORD
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
+// Create transporter dynamically with validation
+const createTransporter = () => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    console.warn('⚠️  Email not configured. Set EMAIL_USER and EMAIL_PASSWORD in .env');
+    return null;
   }
-});
+
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD
+    }
+  });
+};
 
 // Generate a 6-digit OTP
 const generateOTP = () => {
@@ -18,6 +25,13 @@ const generateOTP = () => {
 // Send OTP via email
 const sendOTP = async (email) => {
   try {
+    const transporter = createTransporter();
+    
+    if (!transporter) {
+      console.log('📧 Email not configured. OTP generation skipped for:', email);
+      return { success: false, message: 'Email not configured' };
+    }
+
     // Generate OTP
     const otpCode = generateOTP();
     

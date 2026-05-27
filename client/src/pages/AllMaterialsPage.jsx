@@ -5,6 +5,8 @@ import { courseService } from '../services/courseService';
 import materialService from '../services/materialService';
 import { toast } from 'react-hot-toast';
 import { DocumentTextIcon, ArrowUpTrayIcon, AcademicCapIcon } from '@heroicons/react/24/outline';
+import MaterialUpload from '../components/materials/MaterialUpload';
+import { subjectService } from '../services/subjectService';
 
 export default function AllMaterialsPage() {
   const [courses, setCourses] = useState([]);
@@ -13,10 +15,28 @@ export default function AllMaterialsPage() {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
+  const [teacherSubjects, setTeacherSubjects] = useState([]);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadSubjectId, setUploadSubjectId] = useState(null);
 
   useEffect(() => {
     fetchCoursesAndMaterials();
   }, []);
+
+  useEffect(() => {
+    const loadSubjects = async () => {
+      if (!isTeacher) return;
+      try {
+        const data = await subjectService.getAllSubjects();
+        setTeacherSubjects(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error('Error loading teacher subjects', e);
+        setTeacherSubjects([]);
+      }
+    };
+    loadSubjects();
+  }, [isTeacher]);
 
   const fetchCoursesAndMaterials = async () => {
     try {
@@ -71,8 +91,6 @@ export default function AllMaterialsPage() {
     }
   };
 
-  const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
-
   const getTotalMaterials = () => {
     return Object.values(materialsMap).reduce((total, materials) => total + materials.length, 0);
   };
@@ -113,12 +131,9 @@ export default function AllMaterialsPage() {
               }
             </p>
             {isTeacher && (
-              <button
-                onClick={() => navigate('/create-course')}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-              >
-                Create Your First Course
-              </button>
+              <div className="text-sm text-gray-500">
+                You haven't created any courses yet. Ask an administrator to create or assign a course to you.
+              </div>
             )}
           </div>
         ) : (
@@ -175,8 +190,8 @@ export default function AllMaterialsPage() {
         )}
       </div>
 
-      {/* Quick Action for Teachers */}
-      {isTeacher && courses.length > 0 && (
+      {/* Quick Action for Teachers: show subjects and allow subject uploads */}
+      {isTeacher && (
         <div className="mt-8 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/10 dark:to-blue-900/10 border border-purple-200 dark:border-purple-800 rounded-lg p-6">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
@@ -186,26 +201,53 @@ export default function AllMaterialsPage() {
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                Upload Study Materials
+                Upload Study Materials (Your Subjects)
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                Share notes, lectures, assignments, and resources with your students. 
-                Click on any course above to upload materials.
+                Select one of your assigned subjects and upload resources directly to the subject.
               </p>
               <div className="flex flex-wrap gap-2">
-                {courses.map((course) => (
-                  <button
-                    key={course.id}
-                    onClick={() => navigate(`/courses/${course.id}/materials`)}
-                    className="px-3 py-1.5 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-gray-700 border border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 text-sm font-medium rounded-lg transition-colors"
-                  >
-                    {course.code}
-                  </button>
+                {teacherSubjects.map((subject) => (
+                  <div key={subject.id} className="flex items-center gap-2">
+                    <button
+                      onClick={() => navigate(`/subjects/${subject.id}`)}
+                      className="px-3 py-1.5 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-gray-700 border border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 text-sm font-medium rounded-lg transition-colors"
+                    >
+                      {subject.code || subject.name}
+                    </button>
+                    <button
+                      onClick={() => { setUploadSubjectId(subject.id); setShowUploadModal(true); }}
+                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Upload
+                    </button>
+                  </div>
                 ))}
+                {teacherSubjects.length === 0 && (
+                  <div className="text-sm text-gray-500">You have no assigned subjects yet.</div>
+                )}
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {showUploadModal && uploadSubjectId && (
+        <MaterialUpload
+          subjectId={uploadSubjectId}
+          onUploadSuccess={async () => {
+            // refresh teacher subjects or any relevant data if needed
+            try {
+              const mats = await subjectService.getSubjectMaterials(uploadSubjectId);
+              toast.success('Uploaded — materials refreshed.');
+            } catch (e) {
+              // ignore
+            }
+            setShowUploadModal(false);
+            setUploadSubjectId(null);
+          }}
+          onClose={() => { setShowUploadModal(false); setUploadSubjectId(null); }}
+        />
       )}
     </div>
   );

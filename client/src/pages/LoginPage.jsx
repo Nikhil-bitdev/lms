@@ -234,6 +234,13 @@ export default function LoginPage() {
                 Sign up
               </Link>
             </p>
+            {step === 'credentials' && (
+              <p className="text-center text-sm text-gray-400 mt-3">
+                <Link to="/forgot-password" className="font-medium text-blue-400 hover:text-blue-300">
+                  Forgot your password?
+                </Link>
+              </p>
+            )}
           </div>
         </div>
 

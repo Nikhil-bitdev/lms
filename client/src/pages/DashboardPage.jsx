@@ -7,6 +7,8 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import QuickAssignmentUpload from '../components/assignments/QuickAssignmentUpload';
 import { courseService } from '../services/courseService';
 import { assignmentService } from '../services/assignmentService';
+import { subjectService } from '../services/subjectService';
+import MaterialUpload from '../components/materials/MaterialUpload';
 import { 
   PlusIcon, 
   DocumentTextIcon, 
@@ -18,7 +20,9 @@ import {
   UserGroupIcon,
   ChartBarIcon,
   Cog6ToothIcon,
-  FolderIcon
+  FolderIcon,
+  BookOpenIcon as SubjectsIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 
 const DashboardPage = () => {
@@ -37,7 +41,9 @@ const DashboardPage = () => {
   });
   const [showSubmissionsModal, setShowSubmissionsModal] = useState(false);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
-  const [allSubmissions, setAllSubmissions] = useState([]);
+  const [studentSubmissionGroups, setStudentSubmissionGroups] = useState([]);
+  const [teacherSubjects, setTeacherSubjects] = useState([]);
+  const [uploadSubjectId, setUploadSubjectId] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -48,33 +54,53 @@ const DashboardPage = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [coursesResponse, assignmentsResponse] = await Promise.all([
+      const [coursesResponse, assignmentsResponse, subjectAssignmentsData, mySubmissionsData] = await Promise.all([
         courseService.getMyCourses(),
-        assignmentService.getUserAssignments()
+        assignmentService.getUserAssignments(),
+        user?.role === 'student' ? subjectService.getSubjectAssignmentsForStudent().catch(() => []) : Promise.resolve([]),
+        user?.role === 'student' ? subjectService.getMySubmissions().catch(() => []) : Promise.resolve([])
       ]);
 
       const courses = Array.isArray(coursesResponse) ? coursesResponse : [];
       const assignments = assignmentsResponse?.assignments || [];
 
-      // For students, calculate pending assignments
+      // Merge subject assignments into dashboard
+      const subjectAssignments = Array.isArray(subjectAssignmentsData) ? subjectAssignmentsData : [];
+      const mySubs = Array.isArray(mySubmissionsData) ? mySubmissionsData : [];
+      const submittedIds = new Set(mySubs.map(s => s.subjectAssignmentId));
+
       const now = new Date();
-      const pendingAssignments = assignments.filter(assignment => {
-        const dueDate = new Date(assignment.dueDate);
-        return dueDate > now && !assignment.submitted;
+      const pendingSubjectAssignments = subjectAssignments.filter(a => {
+        return new Date(a.dueDate) > now && !submittedIds.has(a.id);
       });
 
-      // For admin, calculate total assignments and active courses
-      const activeAssignments = user.role === 'admin' 
-        ? assignments.filter(a => new Date(a.dueDate) >= now).length
-        : pendingAssignments.length;
+      // For students, calculate pending assignments (course + subject)
+      const coursePending = assignments.filter(a => {
+        const dueDate = new Date(a.dueDate);
+        return dueDate > now && !a.submitted;
+      });
+
+      const totalPending = user.role === 'student'
+        ? coursePending.length + pendingSubjectAssignments.length
+        : assignments.filter(a => new Date(a.dueDate) >= now).length;
 
       setDashboardData({
         courses,
-        assignments,
+        assignments: [...assignments, ...subjectAssignments],
         coursesCount: courses.length,
-        pendingAssignments: activeAssignments,
-        upcomingQuizzes: 0 // TODO: Implement quizzes
+        pendingAssignments: totalPending,
+        upcomingQuizzes: 0
       });
+
+      // For teachers, also fetch their assigned subjects for quick access
+      if (user?.role === 'teacher' || user?.role === 'instructor') {
+        try {
+          const subs = await subjectService.getAllSubjects();
+          setTeacherSubjects(Array.isArray(subs) ? subs : []);
+        } catch (e) {
+          setTeacherSubjects([]);
+        }
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -108,38 +134,202 @@ const DashboardPage = () => {
     }
   };
 
-  // Fetch submissions for assignments and open modal
   const openSubmissionsModal = async () => {
     setShowSubmissionsModal(true);
     setSubmissionsLoading(true);
+
     try {
-      const assignments = dashboardData.assignments || [];
-      console.log('[Dashboard] openSubmissionsModal - assignments count:', assignments.length, assignments.map(a=>a.id));
-      const results = await Promise.all(assignments.map(async (a) => {
+      const courseAssignments = (dashboardData.assignments || []).filter((assignment) => !assignment.SubjectAssignment);
+
+      const courseResults = await Promise.all(courseAssignments.map(async (assignment) => {
         try {
-          const res = await assignmentService.getAssignmentSubmissions(a.id);
-          console.log(`[Dashboard] submissions for assignment ${a.id}:`, (res.submissions || []).length);
-          return { assignment: a, submissions: res.submissions || [] };
+          const response = await assignmentService.getAssignmentSubmissions(assignment.id);
+          return { assignment, submissions: response.submissions || [] };
         } catch (err) {
-          console.error(`[Dashboard] error fetching submissions for assignment ${a.id}:`, err?.response?.status, err?.response?.data || err.message || err);
-          return { assignment: a, submissions: [] };
+          console.error(`Error fetching course assignment submissions for ${assignment.id}:`, err?.response?.data || err.message || err);
+          return { assignment, submissions: [] };
         }
       }));
 
-      const flattened = [];
-      results.forEach((r) => {
-        (r.submissions || []).forEach((s) => {
-          flattened.push({ assignmentId: r.assignment.id, assignmentTitle: r.assignment.title, submission: s });
+      const courseSubmissionItems = [];
+      courseResults.forEach((result) => {
+        (result.submissions || []).forEach((submission) => {
+          const attachmentList = Array.isArray(submission.attachments) ? submission.attachments : [];
+          const attachments = attachmentList.map((attachment, index) => {
+            if (typeof attachment === 'string') {
+              return {
+                kind: 'course',
+                label: attachment,
+                downloadUrl: `/api/assignments/download/${attachment}`,
+                index
+              };
+            }
+
+            const fallbackName = attachment?.filename || attachment?.fileName || attachment?.originalName || attachment?.originalname || `Attachment ${index + 1}`;
+            return {
+              kind: 'course',
+              label: attachment?.originalName || attachment?.originalname || fallbackName,
+              downloadUrl: attachment?.downloadUrl || (fallbackName ? `/api/assignments/download/${fallbackName}` : null),
+              index
+            };
+          });
+
+          courseSubmissionItems.push({
+            key: `course-${submission.id}`,
+            studentId: submission.User?.id || `course-student-${submission.id}`,
+            studentName: `${submission.User?.firstName || ''} ${submission.User?.lastName || ''}`.trim() || 'Unknown Student',
+            studentEmail: submission.User?.email || '',
+            assignmentTitle: result.assignment.title,
+            containerName: result.assignment.Course?.title || result.assignment.course?.title || 'Course Assignment',
+            submittedAt: submission.submittedAt,
+            status: submission.status,
+            grade: submission.grade,
+            totalPoints: result.assignment.totalPoints || 100,
+            sourceType: 'Course',
+            openUrl: `/assignments/${result.assignment.id}#submissions`,
+            attachments
+          });
         });
       });
 
-      setAllSubmissions(flattened);
+      const subjectPayload = await subjectService.getAllTeacherSubjectSubmissions().catch(() => ({ submissions: [] }));
+      const subjectSubmissions = Array.isArray(subjectPayload)
+        ? subjectPayload.flatMap((assignment) => assignment.SubjectSubmissions || [])
+        : (subjectPayload.submissions || []);
+
+      const subjectSubmissionItems = subjectSubmissions.map((submission) => {
+        const attachmentList = Array.isArray(submission.attachments) ? submission.attachments : [];
+        const attachments = attachmentList.map((attachment, index) => {
+          if (typeof attachment === 'string') {
+            return {
+              kind: 'subject',
+              label: attachment,
+              submissionId: submission.id,
+              index
+            };
+          }
+
+          const fallbackName = attachment?.fileName || attachment?.filename || attachment?.originalName || attachment?.originalname || `Attachment ${index + 1}`;
+          return {
+            kind: 'subject',
+            label: attachment?.originalName || attachment?.originalname || fallbackName,
+            submissionId: submission.id,
+            index
+          };
+        });
+
+        return {
+          key: `subject-${submission.id}`,
+          studentId: submission.User?.id || `subject-student-${submission.id}`,
+          studentName: `${submission.User?.firstName || ''} ${submission.User?.lastName || ''}`.trim() || 'Unknown Student',
+          studentEmail: submission.User?.email || '',
+          assignmentTitle: submission.SubjectAssignment?.title || 'Subject Assignment',
+          containerName: submission.SubjectAssignment?.Subject?.name || 'Subject',
+          submittedAt: submission.submittedAt,
+          status: submission.status,
+          grade: submission.grade,
+          totalPoints: submission.SubjectAssignment?.totalPoints || 100,
+          sourceType: 'Subject',
+          openUrl: `/subjects/${submission.SubjectAssignment?.subjectId}`,
+          attachments
+        };
+      });
+
+      const combined = [...courseSubmissionItems, ...subjectSubmissionItems]
+        .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+
+      const groupedMap = combined.reduce((acc, item) => {
+        if (!acc[item.studentId]) {
+          acc[item.studentId] = {
+            studentId: item.studentId,
+            studentName: item.studentName,
+            studentEmail: item.studentEmail,
+            submissions: []
+          };
+        }
+        acc[item.studentId].submissions.push(item);
+        return acc;
+      }, {});
+
+      const grouped = Object.values(groupedMap).sort((a, b) => {
+        const aDate = a.submissions[0]?.submittedAt ? new Date(a.submissions[0].submittedAt).getTime() : 0;
+        const bDate = b.submissions[0]?.submittedAt ? new Date(b.submissions[0].submittedAt).getTime() : 0;
+        return bDate - aDate;
+      });
+
+      setStudentSubmissionGroups(grouped);
     } catch (error) {
       console.error('Error fetching submissions for dashboard:', error);
       toast.error('Failed to load submissions');
     } finally {
       setSubmissionsLoading(false);
     }
+  };
+
+  const downloadCourseAttachment = async (attachment) => {
+    if (!attachment?.downloadUrl) {
+      toast.error('No download URL for this attachment');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const baseUrl = assignmentService.downloadAttachmentUrl('');
+      const absoluteUrl = attachment.downloadUrl.startsWith('http')
+        ? attachment.downloadUrl
+        : new URL(attachment.downloadUrl, baseUrl).toString();
+
+      const response = await fetch(absoluteUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Download failed (${response.status})`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = attachment.label || 'submission-file';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading course submission attachment:', error);
+      toast.error('Failed to download file');
+    }
+  };
+
+  const handleDownloadSubmissionAttachment = async (attachment) => {
+    if (!attachment) return;
+
+    if (attachment.kind === 'subject') {
+      subjectService
+        .downloadSubmissionAttachmentFile(attachment.submissionId, attachment.index, attachment.label)
+        .catch((error) => {
+          console.error('Error downloading subject submission attachment:', error);
+          toast.error('Failed to download file');
+        });
+      return;
+    }
+
+    await downloadCourseAttachment(attachment);
+  };
+
+  const handleDownloadAttachment = (assignment, idx) => {
+    if (!assignment.Subject?.id) return;
+    const fileName = assignment.attachments?.[idx]?.originalName || assignment.attachments?.[idx]?.filename || 'download';
+    subjectService
+      .downloadAssignmentAttachmentFile(assignment.Subject.id, assignment.id, idx, fileName)
+      .catch((error) => {
+        console.error('Error downloading attachment:', error);
+        toast.error('Failed to download attachment');
+      });
   };
 
   if (!user) {
@@ -260,31 +450,16 @@ const DashboardPage = () => {
                 {user.role === 'admin' ? (
                   <>
                     <button
-                      onClick={() => navigate('/courses')}
+                      onClick={() => navigate('/admin/subjects?openCreate=true')}
                       className="group relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 hover:shadow-lg transition-all duration-300 border border-blue-200 dark:border-blue-800 hover:scale-105"
                     >
                       <div className="flex items-start gap-4">
                         <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg p-3 group-hover:scale-110 transition-transform">
-                          <AcademicCapIcon className="h-6 w-6 text-white" />
+                          <SubjectsIcon className="h-6 w-6 text-white" />
                         </div>
                         <div className="text-left flex-1">
-                          <h3 className="font-bold text-gray-900 dark:text-white mb-1">Manage Courses</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">View and manage all courses</p>
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => navigate('/create-course')}
-                      className="group relative overflow-hidden bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-6 hover:shadow-lg transition-all duration-300 border border-green-200 dark:border-green-800 hover:scale-105"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg p-3 group-hover:scale-110 transition-transform">
-                          <PlusIcon className="h-6 w-6 text-white" />
-                        </div>
-                        <div className="text-left flex-1">
-                          <h3 className="font-bold text-gray-900 dark:text-white mb-1">Create Course</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">Add new course to system</p>
+                          <h3 className="font-bold text-gray-900 dark:text-white mb-1">Create Subject</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">Create and manage subjects</p>
                         </div>
                       </div>
                     </button>
@@ -318,6 +493,21 @@ const DashboardPage = () => {
                         </div>
                       </div>
                     </button>
+
+                    <button
+                      onClick={() => navigate('/subjects')}
+                      className="group relative overflow-hidden bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 rounded-xl p-6 hover:shadow-lg transition-all duration-300 border border-teal-200 dark:border-teal-800 hover:scale-105"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg p-3 group-hover:scale-110 transition-transform">
+                          <SubjectsIcon className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="text-left flex-1">
+                          <h3 className="font-bold text-gray-900 dark:text-white mb-1">Subjects</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">Manage subjects and assignments</p>
+                        </div>
+                      </div>
+                    </button>
                   </>
                 ) : isTeacher ? (
                   <>
@@ -337,7 +527,7 @@ const DashboardPage = () => {
                     </button>
 
                     <button
-                      onClick={() => navigate('/assignments')}
+                      onClick={openSubmissionsModal}
                       className="group relative overflow-hidden bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-6 hover:shadow-lg transition-all duration-300 border border-purple-200 dark:border-purple-800 hover:scale-105"
                     >
                       <div className="flex items-start gap-4">
@@ -346,30 +536,60 @@ const DashboardPage = () => {
                         </div>
                         <div className="text-left flex-1">
                           <h3 className="font-bold text-gray-900 dark:text-white mb-1">View Submissions</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">Review and grade student work</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">Review all course and subject submissions in one place</p>
                         </div>
                       </div>
                     </button>
 
                     {/* Submissions Modal Trigger: fetch recent submissions for teacher's assignments */}
 
-                    <button
-                      onClick={() => navigate('/courses')}
-                      className="group relative overflow-hidden bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-xl p-6 hover:shadow-lg transition-all duration-300 border border-cyan-200 dark:border-cyan-800 hover:scale-105"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg p-3 group-hover:scale-110 transition-transform">
-                          <AcademicCapIcon className="h-6 w-6 text-white" />
-                        </div>
-                        <div className="text-left flex-1">
-                          <h3 className="font-bold text-gray-900 dark:text-white mb-1">My Courses</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">Access your teaching courses</p>
+                    {teacherSubjects && teacherSubjects.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Your Subjects</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {teacherSubjects.slice(0, 6).map((s) => (
+                            <div key={s.id} className="flex items-center gap-2">
+                              <Link
+                                to={`/subjects/${s.id}`}
+                                className="group relative overflow-hidden bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-xl p-3 hover:shadow-lg transition-all duration-300 border border-cyan-200 dark:border-cyan-800 hover:scale-105 flex items-center gap-3 flex-1"
+                              >
+                                <div className="bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg p-2">
+                                  <SubjectsIcon className="h-5 w-5 text-white" />
+                                </div>
+                                <div className="text-left flex-1 truncate">
+                                  <h4 className="font-semibold text-gray-900 dark:text-white truncate">{s.name}</h4>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{s.code || ''}</p>
+                                </div>
+                              </Link>
+                              <button
+                                onClick={() => { setUploadSubjectId(s.id); setShowUploadModal(true); }}
+                                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                              >
+                                Upload
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    </button>
+                    ) : (
+                      <button
+                        onClick={() => navigate('/subjects')}
+                        className="group relative overflow-hidden bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-xl p-6 hover:shadow-lg transition-all duration-300 border border-cyan-200 dark:border-cyan-800 hover:scale-105"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg p-3 group-hover:scale-110 transition-transform">
+                            <SubjectsIcon className="h-6 w-6 text-white" />
+                          </div>
+                          <div className="text-left flex-1">
+                            <h3 className="font-bold text-gray-900 dark:text-white mb-1">My Subjects</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">Access your assigned subjects</p>
+                          </div>
+                        </div>
+                      </button>
+                    )}
 
                     <button
-                      onClick={() => navigate('/materials')}
+                      onClick={() => navigate('/materials/upload')}
                       className="group relative overflow-hidden bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 rounded-xl p-6 hover:shadow-lg transition-all duration-300 border border-amber-200 dark:border-amber-800 hover:scale-105"
                     >
                       <div className="flex items-start gap-4">
@@ -378,27 +598,13 @@ const DashboardPage = () => {
                         </div>
                         <div className="text-left flex-1">
                           <h3 className="font-bold text-gray-900 dark:text-white mb-1">Upload Materials</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">Upload study materials to your courses</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">Pick one of your subjects and upload study materials</p>
                         </div>
                       </div>
                     </button>
                   </>
                 ) : (
                   <>
-                    <button
-                      onClick={() => navigate('/courses')}
-                      className="group relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 hover:shadow-lg transition-all duration-300 border border-blue-200 dark:border-blue-800 hover:scale-105"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg p-3 group-hover:scale-110 transition-transform">
-                          <BookOpenIcon className="h-6 w-6 text-white" />
-                        </div>
-                        <div className="text-left flex-1">
-                          <h3 className="font-bold text-gray-900 dark:text-white mb-1">Browse Courses</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">Discover new learning opportunities</p>
-                        </div>
-                      </div>
-                    </button>
 
                     <button
                       onClick={() => navigate('/assignments')}
@@ -415,20 +621,7 @@ const DashboardPage = () => {
                       </div>
                     </button>
 
-                    <button
-                      onClick={() => navigate('/courses')}
-                      className="group relative overflow-hidden bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-xl p-6 hover:shadow-lg transition-all duration-300 border border-cyan-200 dark:border-cyan-800 hover:scale-105"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg p-3 group-hover:scale-110 transition-transform">
-                          <AcademicCapIcon className="h-6 w-6 text-white" />
-                        </div>
-                        <div className="text-left flex-1">
-                          <h3 className="font-bold text-gray-900 dark:text-white mb-1">My Courses</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">Access your enrolled courses</p>
-                        </div>
-                      </div>
-                    </button>
+                    {/* Removed Browse Courses and My Courses for students per request */}
 
                     <button
                       onClick={() => navigate('/materials')}
@@ -444,6 +637,21 @@ const DashboardPage = () => {
                         </div>
                       </div>
                     </button>
+
+                    <button
+                      onClick={() => navigate('/subjects')}
+                      className="group relative overflow-hidden bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-teal-900/20 dark:to-cyan-900/20 rounded-xl p-6 hover:shadow-lg transition-all duration-300 border border-teal-200 dark:border-teal-800 hover:scale-105"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg p-3 group-hover:scale-110 transition-transform">
+                          <SubjectsIcon className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="text-left flex-1">
+                          <h3 className="font-bold text-gray-900 dark:text-white mb-1">Subjects</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">Browse your subjects</p>
+                        </div>
+                      </div>
+                    </button>
                   </>
                 )}
               </div>
@@ -456,7 +664,7 @@ const DashboardPage = () => {
               {user.role === 'admin' ? 'All Assignments' : 'Upcoming Deadlines'}
             </h2>
             <div className="space-y-3">
-              {dashboardData.assignments.slice(0, 5).map((assignment, index) => (
+               {dashboardData.assignments.slice(0, 5).map((assignment, index) => (
                 <div key={index} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <div className="flex-shrink-0 mt-1">
                     <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
@@ -471,13 +679,30 @@ const DashboardPage = () => {
                       </p>
                     )}
                     <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {assignment.Subject?.name && (
+                        <span className="mr-2">{assignment.Subject.name}</span>
+                      )}
                       {assignment.Course?.title && (
                         <span className="mr-2">📚 {assignment.Course.title}</span>
                       )}
                       Due: {new Date(assignment.dueDate).toLocaleDateString()}
                     </p>
+                    {assignment.attachments?.length > 0 && isStudent && (
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        {assignment.attachments.map((att, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleDownloadAttachment(assignment, idx)}
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/30 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                          >
+                            <ArrowDownTrayIcon className="w-2.5 h-2.5" />
+                            {att.originalName}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <ClockIcon className="h-4 w-4 text-gray-400" />
+                  <ClockIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
                 </div>
               ))}
               {dashboardData.assignments.length === 0 && (
@@ -487,6 +712,24 @@ const DashboardPage = () => {
                     {user.role === 'admin' ? 'No assignments in the system' : 'No upcoming deadlines'}
                   </p>
                 </div>
+              )}
+
+              {/* Subject upload modal for dashboard quick-action */}
+              {showUploadModal && uploadSubjectId && (
+                <MaterialUpload
+                  subjectId={uploadSubjectId}
+                  onUploadSuccess={async () => {
+                    try {
+                      await fetchDashboardData();
+                      toast.success('Material uploaded and dashboard refreshed');
+                    } catch (e) {
+                      // ignore
+                    }
+                    setShowUploadModal(false);
+                    setUploadSubjectId(null);
+                  }}
+                  onClose={() => { setShowUploadModal(false); setUploadSubjectId(null); }}
+                />
               )}
             </div>
           </div>
@@ -723,7 +966,7 @@ const DashboardPage = () => {
       {showSubmissionsModal && (
         <div className="fixed inset-0 z-50 flex items-start justify-center p-6">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSubmissionsModal(false)} />
-          <div className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="relative w-full max-w-5xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Student Submissions</h3>
@@ -734,29 +977,74 @@ const DashboardPage = () => {
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
-              ) : allSubmissions.length === 0 ? (
+              ) : studentSubmissionGroups.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-gray-600 dark:text-gray-400">No submissions found across your assignments.</p>
                 </div>
               ) : (
-                <div className="space-y-3 p-2 max-h-[60vh] overflow-auto">
-                  {allSubmissions.map((item) => (
-                    <div key={item.submission.id} className="group p-4 bg-gradient-to-r from-white to-blue-50 dark:from-gray-700/50 dark:to-blue-900/20 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:shadow-xl transition-all">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="text-lg font-semibold text-gray-900 dark:text-white">{item.submission.User?.firstName} {item.submission.User?.lastName}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">{item.assignmentTitle} • Submitted: {new Date(item.submission.submittedAt).toLocaleString()}</p>
-                          {item.submission.attachments && item.submission.attachments.length > 0 && (
-                            <div className="mt-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1" /></svg>
-                              <span>{item.submission.attachments.length} attachment(s)</span>
-                            </div>
-                          )}
-                        </div>
+                <div className="space-y-4 p-2 max-h-[65vh] overflow-auto">
+                  {studentSubmissionGroups.map((group) => (
+                    <div key={group.studentId} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/30 p-4">
+                      <div className="mb-3">
+                        <p className="text-lg font-semibold text-gray-900 dark:text-white">{group.studentName}</p>
+                        {group.studentEmail && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{group.studentEmail}</p>
+                        )}
+                      </div>
 
-                        <div className="flex items-center gap-3">
-                          <Link to={`/assignments/${item.assignmentId}#submissions`} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Open</Link>
-                        </div>
+                      <div className="space-y-3">
+                        {group.submissions.map((submission) => (
+                          <div key={submission.key} className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-gray-900 dark:text-white truncate">
+                                  {submission.assignmentTitle}
+                                  <span className="ml-2 text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                    {submission.sourceType}
+                                  </span>
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                  {submission.containerName} • Submitted: {new Date(submission.submittedAt).toLocaleString()}
+                                </p>
+                                <div className="mt-2">
+                                  {submission.status === 'graded' ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-full">
+                                      Graded: {submission.grade}/{submission.totalPoints}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full">
+                                      Pending Grade
+                                    </span>
+                                  )}
+                                </div>
+
+                                {submission.attachments?.length > 0 ? (
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    {submission.attachments.map((attachment, idx) => (
+                                      <button
+                                        key={`${submission.key}-att-${idx}`}
+                                        onClick={() => handleDownloadSubmissionAttachment(attachment)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50 rounded-lg transition-colors"
+                                      >
+                                        <ArrowDownTrayIcon className="w-3.5 h-3.5" />
+                                        {attachment.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">No files attached.</p>
+                                )}
+                              </div>
+
+                              <Link
+                                to={submission.openUrl}
+                                className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700"
+                              >
+                                Open
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}
